@@ -1,54 +1,39 @@
-import {useState} from "react";
+import {useState, useEffect} from "react";
 
-function ArtistGet(){
-    const [ArtistID, setArtistID] = useState(null);
-    const [ArtistName, setArtistname] = useState(null);
+function ArtistGet({ArtistID, setPage}){
     const [foundArtist, setFoundArtist] = useState(null);
     const [albums, setAlbums] = useState([]);
 
-    function doSpecificArtist()
-    {
-        //Save Data
-        let artistDocument = {ArtistID: ArtistID, ArtistName: ArtistName};
-        fetch("http://localhost:8080/artists/" + ArtistID, {
-            method:"POST",
-            body: JSON.stringify(artistDocument),
-            headers: 
-            {'Accept': 'application/json','Content-Type': 'application/json'}
-        })
-        .then(response => console.log(response));
-    }
 
-    function getSpecificArtist()
-    {
-        console.log("Searching for:", ArtistID);
+    useEffect(() => {
+        if (!ArtistID) return;
+
         Promise.all([
-            fetch("http://localhost:8080/artists/" + ArtistID).then(res => res.json()),
+            fetch("http://localhost:8080/artists/" + ArtistID).then(res => {
+                if (!res.ok) return null;
+                return res.json();
+            }),
             fetch("http://localhost:8080/albums/" + ArtistID).then(res => {
-            if (!res.ok){
-                return [];
-            }
-            return res.json();
+                if (!res.ok) return [];
+                return res.json();
             })
         ])
-
         .then(([artistData, albumsData]) => {
             setFoundArtist(artistData);
             setAlbums(albumsData);
         })
         .catch(err => console.log(err));
-    }
+    }, [ArtistID]); 
 
     return(
         <>
-            <div>
-            <input type="text" id="artistID" onChange={e => setArtistID(e.target.value)}/><br></br>
-            <button onClick={getSpecificArtist}>Get Specific Artist</button>
+            {!foundArtist && <p>No Artist Found</p>}
 
+            <div>
             {/* Display the result on the page */}
             {foundArtist && (
                 <div>
-                    <h1 className="ArtistName">{foundArtist.ArtistName}</h1>
+                    <h1 className="ArtistName">{foundArtist.Name}</h1>
                     <p>Age: {foundArtist.Age}</p>
                     <p>Rating: {foundArtist.Rating}</p>
                 </div>

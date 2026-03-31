@@ -10,11 +10,12 @@ import Playlists from "./componets/Playlists.jsx"; // adjust path if needed
 function App() {
   // page state: "home", "artist", or "ratings"
   const [page, setPage] = useState("home");
+  const [selectedArtist, setSelectedArtist] = useState(null);
 
   // function to render the correct page
   const renderPage = () => {
-    if (page === "home") return <MainPage />;
-    if (page === "artist") return <ArtistGet />;
+    if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist}/>;
+    if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage}/>;
     if (page === "playlists") return <Playlists />;
   };
 
