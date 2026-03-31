@@ -5,7 +5,7 @@ import Head from "./header.jsx";
 import ArtistGet from "./componets/ArtistGet.jsx";
 import Foot from "./Foot.jsx";
 import MainPage from "./MainPage.jsx";
-import Ratings from "./componets/Ratings.jsx"; // adjust path if needed
+import Playlists from "./componets/Playlists.jsx"; // adjust path if needed
 
 function App() {
   // page state: "home", "artist", or "ratings"
@@ -15,23 +15,13 @@ function App() {
   const renderPage = () => {
     if (page === "home") return <MainPage />;
     if (page === "artist") return <ArtistGet />;
-    if (page === "ratings") return <Ratings />;
+    if (page === "playlists") return <Playlists />;
   };
 
   return (
     <>
-      <Head />
-
-      {/* navigation buttons */}
-      <div style={{ margin: "20px 0" }}>
-        <button onClick={() => setPage("home")}>Home</button>
-        <button onClick={() => setPage("artist")}>Artists</button>
-        <button onClick={() => setPage("ratings")}>Ratings</button>
-      </div>
-
-      {/* main content */}
+      <Head setPage={setPage} currentPage={page} />
       {renderPage()}
-
       <Foot />
     </>
   );

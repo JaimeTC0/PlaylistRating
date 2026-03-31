@@ -1,24 +1,36 @@
 import './head.css'
 
-function goHome(){
-  console.log("Going Home...");
-  homePage();
-}
-
-function Head(){
+function Head({ setPage, currentPage }) {
   return (
-    <>
-         <header>
-            <p className="PageHeader">MyPlaylist.com</p>
+    <header className="header">
+      <p className="PageHeader" onClick={() => setPage("home")}>
+        MyPlaylist.com
+      </p>
 
-            <nav>
-                <button onClick={goHome}>Main Page</button>
-                <button href="services.html">Services</button>
-                <button href="mission.html">Mission</button>
-                <button href="about.html">About Us</button>
-            </nav>
-        </header>
-    </>
+      <nav className="header-nav">
+        <button
+          onClick={() => setPage("home")}
+          className={currentPage === "home" ? "active" : ""}
+        >
+          Home
+        </button>
+        <button
+          onClick={() => setPage("artist")}
+          className={currentPage === "artist" ? "active" : ""}
+        >
+          Artists
+        </button>
+        <button
+          onClick={() => setPage("playlists")}
+          className={currentPage === "playlists" ? "active" : ""}
+        >
+          Playlists
+        </button>
+        <a href="about.html" className="nav-link">
+          About Us
+        </a>
+      </nav>
+    </header>
   )
 }
 
