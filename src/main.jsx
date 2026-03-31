@@ -41,6 +41,6 @@ function App() {
 let Root = createRoot(document.getElementById("root"));
 Root.render(
   <StrictMode>
-    <app />
+    <App />
   </StrictMode>,
 );

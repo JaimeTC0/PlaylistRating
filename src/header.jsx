@@ -1,4 +1,3 @@
-import {homePage} from './main.jsx'
 import './head.css'
 
 function goHome(){
