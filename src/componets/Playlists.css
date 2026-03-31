@@ -217,6 +217,26 @@
   text-align: right;
 }
 
+/* Hide delete button by default */
+.pl-delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: transparent;
+  border: none;
+  color: #f55;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Show delete button when hovering over row */
+.pl-row:hover .pl-delete-btn {
+  opacity: 1;
+}
+
+.pl-delete-btn:hover {
+  color: #ff0000;
+}
+
 /* =======================
    Track Cards (detail view)
 ======================= */
