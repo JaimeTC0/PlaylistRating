@@ -1,39 +1,18 @@
 import { useEffect, useState } from "react";
 import "./Playlists.css";
-import { optimisticUpdate } from "../ratingUtils"; // adjust path if needed
+import { optimisticUpdate } from "../ratingUtils";
 
-export default function Playlists() {
+// =======================
+// PLAYLIST LIST VIEW
+// =======================
+function PlaylistList({ onOpen }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
-
-  // Sorting state
   const [sortBy, setSortBy] = useState("name");
   const [ascending, setAscending] = useState(true);
-
-  useEffect(() => {
-    fetch("http://localhost:8080/playlists")
-      .then((r) => r.json())
-      .then(async (data) => {
-        // Fetch globalAvg for all playlists in parallel
-        const enriched = await Promise.all(
-          data.map(async (p) => {
-            try {
-              const res = await fetch(`http://localhost:8080/playlists/${p._id}/globalavg`);
-              const { globalAvg } = await res.json();
-              return { ...p, globalAvg };
-            } catch {
-              return { ...p, globalAvg: null };
-            }
-          })
-        );
-        setPlaylists(enriched);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -41,41 +20,294 @@ export default function Playlists() {
     setTimeout(() => setToastVisible(false), 2000);
   };
 
-  const handleRating = async (id, rating) => {
-    setSaving(id);
+  useEffect(() => {
+    loadPlaylists();
+  }, []);
 
-    // Optimistic update — show new avg instantly
-    setPlaylists((prev) =>
-      prev.map((p) => {
-        if (p._id !== id) return p;
+  async function loadPlaylists() {
+    try {
+      const res = await fetch("http://localhost:8080/playlists");
+      const data = await res.json();
+      const enriched = await Promise.all(
+        data.map(async (p) => {
+          try {
+            const r = await fetch(`http://localhost:8080/playlists/${p._id}/globalavg`);
+            const { globalAvg } = await r.json();
+            return { ...p, globalAvg };
+          } catch {
+            return { ...p, globalAvg: null };
+          }
+        })
+      );
+      setPlaylists(enriched);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleCreate = (newPlaylist) => {
+    setPlaylists((prev) => [...prev, { ...newPlaylist, globalAvg: null }]);
+    setShowModal(false);
+    showToast("Playlist created!");
+  };
+
+  const toggleSort = (field) => {
+    if (sortBy === field) setAscending(!ascending);
+    else { setSortBy(field); setAscending(true); }
+  };
+
+  const sorted = [...playlists].sort((a, b) => {
+    let comp = 0;
+    if (sortBy === "name") comp = (a.name || "").localeCompare(b.name || "");
+    else if (sortBy === "user") comp = (a.rating ?? 0) - (b.rating ?? 0);
+    else if (sortBy === "global") comp = (a.globalAvg ?? 0) - (b.globalAvg ?? 0);
+    return ascending ? comp : -comp;
+  });
+
+  return (
+    <div className="pl-page">
+      <div className="pl-header">
+        <div>
+          <h1 className="pl-title">YOUR<br /><span className="pl-accent">PLAYLISTS</span></h1>
+          <div className="pl-divider" />
+          <p className="pl-sub">Click a playlist to explore · Sort by column</p>
+        </div>
+        <button className="pl-new-btn" onClick={() => setShowModal(true)}>
+          + NEW PLAYLIST
+        </button>
+      </div>
+
+      {!loading && playlists.length > 0 && (
+        <div className="pl-table-header">
+          <div className="pl-col pl-col-name" onClick={() => toggleSort("name")}>
+            Name {sortBy === "name" && (ascending ? "▲" : "▼")}
+          </div>
+          <div className="pl-col pl-col-tracks">Tracks</div>
+          <div className="pl-col pl-col-user" onClick={() => toggleSort("user")}>
+            Your Rating {sortBy === "user" && (ascending ? "▲" : "▼")}
+          </div>
+          <div className="pl-col pl-col-global" onClick={() => toggleSort("global")}>
+            Global Avg {sortBy === "global" && (ascending ? "▲" : "▼")}
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="pl-loading">
+          {[0,1,2].map(i => <span key={i} className="pl-dot" style={{ animationDelay: `${i*0.15}s` }} />)}
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="pl-empty">
+          <div className="pl-empty-icon">♫</div>
+          <p className="pl-empty-text">No playlists yet — create one!</p>
+        </div>
+      ) : (
+        <div className="pl-grid">
+          {sorted.map((p, i) => (
+            <div
+              key={p._id}
+              className="pl-row"
+              style={{ animationDelay: `${i * 0.05}s` }}
+              onClick={() => onOpen(p)}
+            >
+              <div className="pl-col pl-col-name pl-row-name">{p.name || "Untitled"}</div>
+              <div className="pl-col pl-col-tracks pl-muted">{p.tracks?.length ?? 0} songs</div>
+              <div className="pl-col pl-col-user">
+                {p.rating != null
+                  ? <span className="pl-rating-num">{p.rating}<span className="pl-rating-denom">/5</span></span>
+                  : <span className="pl-muted">—</span>}
+              </div>
+              <div className="pl-col pl-col-global">
+                {p.globalAvg != null
+                  ? <span className="pl-global-num">{p.globalAvg}</span>
+                  : <span className="pl-muted">—</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <CreateModal onClose={() => setShowModal(false)} onCreate={handleCreate} />
+      )}
+
+      <div className={`pl-toast${toastVisible ? " show" : ""}`}>{toast}</div>
+    </div>
+  );
+}
+
+// =======================
+// CREATE MODAL
+// =======================
+function CreateModal({ onClose, onCreate }) {
+  const [name, setName] = useState("");
+  const [songs, setSongs] = useState([]);
+  const [songInput, setSongInput] = useState({ title: "", artist: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const addSong = () => {
+    if (!songInput.title.trim() || !songInput.artist.trim()) {
+      setError("Both song title and artist are required.");
+      return;
+    }
+    setSongs((prev) => [...prev, { ...songInput, id: Date.now().toString() }]);
+    setSongInput({ title: "", artist: "" });
+    setError("");
+  };
+
+  const removeSong = (id) => setSongs((prev) => prev.filter((s) => s.id !== id));
+
+  const handleSubmit = async () => {
+    if (!name.trim()) { setError("Playlist name is required."); return; }
+    setSaving(true);
+    try {
+      const res = await fetch("http://localhost:8080/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), tracks: songs }),
+      });
+      const created = await res.json();
+      onCreate(created);
+    } catch {
+      setError("Failed to create playlist. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="pl-modal-overlay" onClick={onClose}>
+      <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="pl-modal-header">
+          <h2 className="pl-modal-title">NEW PLAYLIST</h2>
+          <button className="pl-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="pl-modal-body">
+          <label className="pl-label">PLAYLIST NAME</label>
+          <input
+            className="pl-input"
+            placeholder="e.g. Late Night Drives"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <label className="pl-label" style={{ marginTop: 24 }}>ADD SONGS</label>
+          <div className="pl-song-row">
+            <input
+              className="pl-input"
+              placeholder="Song title"
+              value={songInput.title}
+              onChange={(e) => setSongInput((p) => ({ ...p, title: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && addSong()}
+            />
+            <input
+              className="pl-input"
+              placeholder="Artist"
+              value={songInput.artist}
+              onChange={(e) => setSongInput((p) => ({ ...p, artist: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && addSong()}
+            />
+            <button className="pl-add-song-btn" onClick={addSong}>+</button>
+          </div>
+
+          {error && <p className="pl-error">{error}</p>}
+
+          {songs.length > 0 && (
+            <ul className="pl-song-list">
+              {songs.map((s) => (
+                <li key={s.id} className="pl-song-item">
+                  <span className="pl-song-name">{s.title}</span>
+                  <span className="pl-song-artist">{s.artist}</span>
+                  <button className="pl-remove-btn" onClick={() => removeSong(s.id)}>✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="pl-modal-footer">
+          <button className="pl-cancel-btn" onClick={onClose}>Cancel</button>
+          <button className="pl-create-btn" onClick={handleSubmit} disabled={saving}>
+            {saving ? "Creating..." : "Create Playlist"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =======================
+// PLAYLIST DETAIL VIEW
+// =======================
+function PlaylistDetail({ playlist, onBack }) {
+  const [tracks, setTracks] = useState(playlist.tracks || []);
+  const [saving, setSaving] = useState(null);
+  const [toast, setToast] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
+  };
+
+  useEffect(() => {
+    async function enrichTracks() {
+      const enriched = await Promise.all(
+        (playlist.tracks || []).map(async (t) => {
+          try {
+            const res = await fetch(`http://localhost:8080/tracks/${t.id}/rating`);
+            const data = await res.json();
+            return { ...t, globalAvg: data.averageRating, userRatingCount: data.userRatingCount };
+          } catch {
+            return { ...t, globalAvg: null, userRatingCount: 0 };
+          }
+        })
+      );
+      setTracks(enriched);
+    }
+    enrichTracks();
+  }, [playlist]);
+
+  const handleRate = async (trackId, rating) => {
+    setSaving(trackId);
+
+    // Optimistic update
+    setTracks((prev) =>
+      prev.map((t) => {
+        if (t.id !== trackId) return t;
         return {
-          ...p,
-          rating,
-          globalAvg: optimisticUpdate(
-            p.globalAvg,
-            p.userRatingCount ?? 0,
-            rating
-          ),
+          ...t,
+          userRating: rating,
+          globalAvg: optimisticUpdate(t.globalAvg ?? rating, t.userRatingCount ?? 0, rating),
         };
       })
     );
 
     try {
-      const res = await fetch("http://localhost:8080/rate", {
+      const track = tracks.find((t) => t.id === trackId);
+      const res = await fetch("http://localhost:8080/tracks/rate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, rating }),
+        body: JSON.stringify({
+          trackId,
+          trackName: track?.title || track?.name || "",
+          artist: track?.artist || "",
+          rating,
+        }),
       });
-      const updated = await res.json();
-
-      // Reconcile server response with local globalAvg values
-      setPlaylists((prev) =>
-        updated.map((p) => {
-          const existing = prev.find((x) => x._id === p._id);
-          return { ...p, globalAvg: existing?.globalAvg ?? null };
-        })
+      const data = await res.json();
+      setTracks((prev) =>
+        prev.map((t) =>
+          t.id === trackId
+            ? { ...t, userRating: rating, globalAvg: data.averageRating, userRatingCount: data.userRatingCount }
+            : t
+        )
       );
-
       showToast(`Rated ${rating}★`);
     } catch {
       showToast("Failed to save");
@@ -84,125 +316,77 @@ export default function Playlists() {
     }
   };
 
-  // Toggle sort field / direction
-  const toggleSort = (field) => {
-    if (sortBy === field) setAscending(!ascending);
-    else {
-      setSortBy(field);
-      setAscending(true);
-    }
-  };
-
-  // Sort playlists
-  const sortedPlaylists = [...playlists].sort((a, b) => {
-    let comp = 0;
-    if (sortBy === "name") {
-      comp = (a.name || "").localeCompare(b.name || "");
-    } else if (sortBy === "user") {
-      comp = (a.rating ?? 0) - (b.rating ?? 0);
-    } else if (sortBy === "global") {
-      comp = (a.globalAvg ?? 0) - (b.globalAvg ?? 0);
-    }
-    return ascending ? comp : -comp;
-  });
-
   return (
-    <div className="playlists-page">
-      {/* Header */}
-      <div className="playlists-header">
-        <h1 className="playlists-title">
-          YOUR<br />
-          <span className="playlists-title-accent">PLAYLISTS</span>
-        </h1>
-        <div className="playlists-divider" />
-        <p className="playlists-sub">Your collection · Click a star to rate</p>
+    <div className="pl-page">
+      <div className="pl-detail-header">
+        <button className="pl-back-btn" onClick={onBack}>← BACK</button>
+        <div>
+          <h1 className="pl-title">{playlist.name || "Untitled"}</h1>
+          <div className="pl-divider" />
+          <p className="pl-sub">{tracks.length} song{tracks.length !== 1 ? "s" : ""} · Rate each track</p>
+        </div>
       </div>
 
-      {/* Table Headers */}
-      {!loading && playlists.length > 0 && (
-        <div className="playlists-table-header">
-          <div className="playlists-col playlists-name-col" onClick={() => toggleSort("name")}>
-            Name {sortBy === "name" && (ascending ? "▲" : "▼")}
-          </div>
-          <div className="playlists-col playlists-user-col" onClick={() => toggleSort("user")}>
-            Your Rating {sortBy === "user" && (ascending ? "▲" : "▼")}
-          </div>
-          <div className="playlists-col playlists-global-col" onClick={() => toggleSort("global")}>
-            Global Avg {sortBy === "global" && (ascending ? "▲" : "▼")}
-          </div>
-        </div>
-      )}
-
-      {/* List */}
-      {loading ? (
-        <div className="playlists-loading">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="playlists-dot"
-              style={{ animationDelay: `${i * 0.15}s` }}
-            />
-          ))}
-        </div>
-      ) : sortedPlaylists.length === 0 ? (
-        <div className="playlists-empty">
-          <div className="playlists-empty-icon">♫</div>
-          <p className="playlists-empty-text">No playlists found</p>
+      {tracks.length === 0 ? (
+        <div className="pl-empty">
+          <div className="pl-empty-icon">♪</div>
+          <p className="pl-empty-text">No songs in this playlist</p>
         </div>
       ) : (
-        <div className="playlists-grid">
-          {sortedPlaylists.map((p, i) => {
-            const rated = p.rating !== null && p.rating !== undefined;
-            const globalAvg = p.globalAvg ?? "—";
-
-            return (
-              <div
-                key={p._id}
-                className="playlists-card"
-                style={{ animationDelay: `${i * 0.05}s` }}
-              >
-                <div className="playlists-info">
-                  <div className="playlists-name">
-                    {p.name || p.title || "Untitled"}
-                  </div>
-                  <div className="playlists-meta">
-                    <span className={rated ? "playlists-num" : "playlists-num unrated"}>
-                      {rated ? p.rating : "—"}
-                    </span>
-                    <span className="playlists-label">
-                      {rated ? "/ 5 rated" : "not yet rated"}
-                    </span>
-                    <span className="playlists-global">
-                      Global Avg: {globalAvg}
-                    </span>
-                  </div>
-                </div>
-                <div className="playlists-stars">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => handleRating(p._id, n)}
-                      disabled={saving === p._id}
-                      className={[
-                        "playlists-star-btn",
-                        p.rating === n ? "active" : "",
-                        saving === p._id ? "saving" : "",
-                      ].join(" ").trim()}
-                    >
-                      ★
-                    </button>
-                  ))}
+        <div className="pl-grid">
+          {tracks.map((t, i) => (
+            <div
+              key={t.id || i}
+              className="pl-track-card"
+              style={{ animationDelay: `${i * 0.05}s` }}
+            >
+              <div className="pl-track-info">
+                <div className="pl-track-title">{t.title || t.name || "Unknown"}</div>
+                <div className="pl-track-artist">{t.artist || "Unknown Artist"}</div>
+                <div className="pl-track-stats">
+                  <span className="pl-stat">
+                    <span className="pl-stat-label">GLOBAL</span>
+                    <span className="pl-stat-value">{t.globalAvg != null ? t.globalAvg : "—"}</span>
+                  </span>
+                  <span className="pl-stat-divider" />
+                  <span className="pl-stat">
+                    <span className="pl-stat-label">YOUR RATING</span>
+                    <span className="pl-stat-value pl-accent-text">{t.userRating != null ? t.userRating : "—"}</span>
+                  </span>
                 </div>
               </div>
-            );
-          })}
+              <div className="pl-stars">
+                {[1,2,3,4,5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => handleRate(t.id, n)}
+                    disabled={saving === t.id}
+                    className={[
+                      "pl-star-btn",
+                      t.userRating === n ? "active" : "",
+                      saving === t.id ? "saving" : "",
+                    ].join(" ").trim()}
+                  >★</button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Toast */}
-      <div className={`playlists-toast${toastVisible ? " show" : ""}`}>
-        {toast}
-      </div>
+      <div className={`pl-toast${toastVisible ? " show" : ""}`}>{toast}</div>
     </div>
   );
+}
+
+// =======================
+// ROOT EXPORT
+// =======================
+export default function Playlists() {
+  const [openPlaylist, setOpenPlaylist] = useState(null);
+
+  if (openPlaylist) {
+    return <PlaylistDetail playlist={openPlaylist} onBack={() => setOpenPlaylist(null)} />;
+  }
+  return <PlaylistList onOpen={setOpenPlaylist} />;
 }
