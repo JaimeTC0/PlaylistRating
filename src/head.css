@@ -1,0 +1,42 @@
+header{
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background-color: lavender;
+    min-height: 100px;
+}
+
+nav{
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    justify-content: space-evenly;
+}
+
+nav button, nav a
+{
+    color:white;
+    background-color: cornflowerblue;
+    text-decoration: none;
+    font-size: 1.5vw;
+    display: inline;
+    width: 20%;
+    padding: 1vw 0vw;
+    text-wrap-mode: nowrap;
+}
+
+nav button:hover, nav a:hover{
+    background-color:darkgoldenrod;
+}
+
+nav button:active, nav a:active{
+    background-color: gold;
+}
+
+.PageHeader{
+    padding: 10px;
+    text-align: center;
+    font-size: 25px;
+}
