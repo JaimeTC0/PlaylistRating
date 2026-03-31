@@ -5,24 +5,20 @@ export default function Ratings() {
 
   // fetch playlists from server
   useEffect(() => {
-    fetch("http://localhost:3000/playlists")
+    fetch("http://localhost:8080/playlists")
       .then(res => res.json())
       .then(data => setPlaylists(data));
   }, []);
 
   // send rating
   const handleRating = (id, rating) => {
-    fetch("http://localhost:3000/rate", {
+    fetch("http://localhost:8080/rate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, rating }),
     })
     .then(res => res.json())
-    .then(updated => {
-      setPlaylists(updated);
-    });
+    .then(updated => setPlaylists(updated));
   };
 
   return (
@@ -30,12 +26,12 @@ export default function Ratings() {
       <h1>Rate Playlists</h1>
 
       {playlists.map(p => (
-        <div key={p.id} style={{ marginBottom: "20px" }}>
-          <h3>{p.name}</h3>
+        <div key={p._id} style={{ marginBottom: "20px" }}>
+          <h3>{p.title}</h3>
           <p>Rating: {p.rating || 0}</p>
 
           {[1,2,3,4,5].map(num => (
-            <button key={num} onClick={() => handleRating(p.id, num)}>
+            <button key={num} onClick={() => handleRating(p._id, num)}>
               {num}⭐
             </button>
           ))}
