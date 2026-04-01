@@ -342,6 +342,64 @@ app.get("/playlists/:id/globalavg", requireDB, async (req, res) => {
 
 app.get("/", (req, res) => res.send("Server is running"));
 
+app.get("/artists/:id", async (req, res) => {
+
+    try{
+        let collection = db.collection("Artists");
+        let result = await collection.findOne({ArtistID: req.params.id});
+
+        if(!result){
+            res.status(404).json({ message: "Artist not found" });
+            return;
+        }
+        res.json(result);
+    }
+    catch(e){
+        console.log(e);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+app.get("/albums/:ArtistID", async (req,res) => {
+    try{
+        let collection = db.collection("Albums");
+        let result = await collection.find({ ArtistID: req.params.ArtistID}).toArray();
+
+        if(result.length === 0){
+            res.status(404).json({message: "No albums found"});
+            return;
+        }
+        res.json(result);
+    }
+    catch(e){
+        console.log(e);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
+app.get("/allArtists", async (req, res) => {
+    try{
+        let collection = db.collection("Artists");
+        let result = await collection.find().toArray();
+        res.json(result);
+    }
+    catch(e){
+        console.log(e);
+    }
+});
+
+app.get("/allAlbums", async (req, res) => {
+    try{
+        let collection = db.collection("Albums");
+        let result = await collection.find().toArray();
+        res.json(result);
+    }
+    catch(e){
+        console.log(e);
+    }
+});
+
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
 // =======================
