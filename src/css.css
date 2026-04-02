@@ -1,62 +1,120 @@
-a{
-    text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --surface2: #1a1a1a;
+    --surface3: #222;
+    --border: #222;
+    --border2: #333;
+    --accent: #e8ff47;
+    --text: #f0f0f0;
+    --muted: #555;
 }
 
-.BigAlbumCover{
-    float:left;
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+}
+
+#root {
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+a {
+    text-align: center;
+    color: var(--accent);
+}
+
+.BigAlbumCover {
+    float: left;
     height: 250px;
     width: 250px;
+    border: 1px solid var(--border);
 }
 
-.AlbumName, .ArtistName{
+.AlbumName,
+.ArtistName {
     padding: 0;
     margin: 0;
     text-align: center;
 }
 
-.Albums{
+.Albums {
     max-width: 200px;
     width: 150px;
     margin: 1.5%;
     text-align: justify;
     font-size: clamp(8px, 1.5vw, 12px);
     border-radius: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 
-.AlbumCover{
+.AlbumCover {
     justify-content: center;
     width: 150px;
     height: 150px;
-    background-color: black;
+    background-color: var(--surface3);
+    border: 1px solid var(--border);
 }
 
-.InfoContainer{
+.InfoContainer {
     margin-left: 250px;
     text-align: center;
 }
 
-p{
+p {
     margin: 0;
     text-align: center;
 }
 
-.AlbumList, .MainDiv{
+h1,
+h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    color: var(--text);
+}
+
+.AlbumList,
+.MainDiv {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 16px 24px;
 }
 
-.AlbumList h2{
+.AlbumList h2 {
     min-width: 100%;
 }
 
-.ListInfo, .MainList{
+.ListInfo,
+.MainList {
     min-width: 150px;
     padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-footer{
-    background-color: lavender;
+.ListInfo:hover,
+.MainList:hover {
+    background: var(--surface2);
+    border-color: var(--border2);
+}
+
+footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
     text-align: center;
+    padding: 16px;
 }

@@ -14,8 +14,8 @@ function App() {
 
   // function to render the correct page
   const renderPage = () => {
-    if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist}/>;
-    if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage}/>;
+    if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
+    if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
     if (page === "playlists") return <Playlists />;
   };
 

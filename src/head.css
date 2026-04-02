@@ -1,12 +1,13 @@
-header{
+header {
     margin: 0;
     padding: 0;
     border: 0;
-    background-color: lavender;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     min-height: 100px;
 }
 
-nav{
+nav {
     display: flex;
     flex-wrap: nowrap;
     width: 100%;
@@ -15,28 +16,43 @@ nav{
     justify-content: space-evenly;
 }
 
-nav button, nav a
-{
-    color:white;
-    background-color: cornflowerblue;
+nav button,
+nav a {
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
     text-decoration: none;
-    font-size: 1.5vw;
+    font-size: clamp(12px, 1.5vw, 18px);
     display: inline;
     width: 20%;
-    padding: 1vw 0vw;
+    padding: 1vw 0;
     text-wrap-mode: nowrap;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-nav button:hover, nav a:hover{
-    background-color:darkgoldenrod;
+nav button:hover,
+nav a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232, 255, 71, 0.08);
 }
 
-nav button:active, nav a:active{
-    background-color: gold;
+nav button:active,
+nav a:active,
+nav .active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #000;
 }
 
-.PageHeader{
+.PageHeader {
     padding: 10px;
     text-align: center;
-    font-size: 25px;
+    font-size: 34px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    color: var(--accent);
+    cursor: pointer;
 }
