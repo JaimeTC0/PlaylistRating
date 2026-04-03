@@ -153,6 +153,32 @@ app.delete("/playlists/:id", requireDB, async (req, res) => {
   }
 });
 
+// UPDATE playlist name
+app.put("/playlists/:id", requireDB, async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const result = await db.collection("Playlists").updateOne(
+      { _id: new ObjectId(playlistId) },
+      { $set: { name: name.trim() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Playlist not found" });
+    }
+
+    res.json({ message: "Playlist updated successfully" });
+  } catch (err) {
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ADD a song to a playlist
 app.post("/playlists/:id/add-track", requireDB, async (req, res) => {
   try {
@@ -172,6 +198,32 @@ app.post("/playlists/:id/add-track", requireDB, async (req, res) => {
     res.json({ message: "Track added successfully!" });
   } catch (err) {
     console.error("ADD TRACK ERROR:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// REMOVE a song from a playlist
+app.delete("/playlists/:id/remove-track", requireDB, async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+    const { trackId } = req.body;
+
+    if (!trackId) {
+      return res.status(400).json({ message: "trackId is required" });
+    }
+
+    const result = await db.collection("Playlists").updateOne(
+      { _id: new ObjectId(playlistId) },
+      { $pull: { tracks: { id: trackId } } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Playlist not found" });
+    }
+
+    res.json({ message: "Track removed successfully!" });
+  } catch (err) {
+    console.error("REMOVE TRACK ERROR:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });

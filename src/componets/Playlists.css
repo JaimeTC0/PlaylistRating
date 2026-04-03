@@ -429,6 +429,127 @@
   color: var(--muted);
 }
 
+.pl-name-input {
+  padding: 15px 25px;
+  font-size: 1.1rem;
+  border: 1px solid var(--border2);
+  border-radius: 50px;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pl-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.pl-name-input::placeholder {
+  color: var(--muted);
+}
+
+.pl-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pl-edit-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.pl-edit-btn:hover {
+  color: var(--accent);
+}
+
+.pl-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl-save-btn {
+  background: var(--accent);
+  border: none;
+  color: #000;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pl-cancel-btn {
+  background: var(--error);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =======================
+   Track Cards
+======================= */
+.pl-track-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.pl-track-card:hover {
+  border-color: var(--border2);
+}
+
+.pl-track-info {
+  flex-grow: 1;
+}
+
+.pl-track-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pl-remove-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 2px;
+}
+
+.pl-track-card:hover .pl-remove-btn {
+  opacity: 1;
+}
+
+.pl-remove-btn:hover {
+  color: var(--error);
+}
+
 .pl-song-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;

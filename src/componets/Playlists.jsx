@@ -226,17 +226,22 @@ function PlaylistList({ onOpen, setPage }) {
 function CreateModal({ onClose, onCreate, nextNumber }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [name, setName] = useState(`Playlist ${nextNumber}`);
 
   const handleSubmit = async () => {
+    if (!name.trim()) {
+      setError("Please enter a playlist name.");
+      return;
+    }
+
     setSaving(true);
-    const genericName = `Playlist ${nextNumber}`; // Generates "Playlist 3", etc.
 
     try {
       const res = await fetch("http://localhost:8080/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: genericName,
+          name: name.trim(),
           tracks: [], // Creates it empty as requested
         }),
       });
@@ -264,10 +269,17 @@ function CreateModal({ onClose, onCreate, nextNumber }) {
 
         <div className="pl-modal-body">
           <p className="pl-sub">
-            This will create a new empty playlist named{" "}
-            <strong>Playlist {nextNumber}</strong>. You can add songs to it
+            Enter a name for your new playlist. You can add songs to it
             later from the Search page.
           </p>
+          <input
+            type="text"
+            className="pl-name-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Playlist name"
+            maxLength={50}
+          />
           {error && <p className="pl-error">{error}</p>}
         </div>
 
@@ -296,11 +308,55 @@ function PlaylistDetail({ playlist, onBack }) {
   const [saving, setSaving] = useState(null);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState(playlist.name || "Untitled");
 
   const showToast = (msg) => {
     setToast(msg);
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2000);
+  };
+
+  const handleSaveName = async () => {
+    if (!newName.trim()) {
+      showToast("Name cannot be empty");
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8080/playlists/${playlist._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      playlist.name = newName.trim(); // Update local
+      setEditingName(false);
+      showToast("Playlist name updated");
+    } catch {
+      showToast("Failed to update name");
+    }
+  };
+
+  const handleRemoveTrack = async (trackId, trackName) => {
+    if (!window.confirm(`Remove "${trackName}" from this playlist?`)) return;
+
+    try {
+      const res = await fetch(`http://localhost:8080/playlists/${playlist._id}/remove-track`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackId }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setTracks((prev) => prev.filter((t) => t.id !== trackId));
+      showToast(`Removed "${trackName}"`);
+    } catch {
+      showToast("Failed to remove track");
+    }
   };
 
   useEffect(() => {
@@ -386,7 +442,30 @@ function PlaylistDetail({ playlist, onBack }) {
           ← BACK
         </button>
         <div>
-          <h1 className="pl-title">{playlist.name || "Untitled"}</h1>
+          {editingName ? (
+            <div className="pl-name-edit">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="pl-name-input"
+                maxLength={50}
+              />
+              <button className="pl-save-btn" onClick={handleSaveName}>
+                ✓
+              </button>
+              <button className="pl-cancel-btn" onClick={() => { setEditingName(false); setNewName(playlist.name || "Untitled"); }}>
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="pl-title-row">
+              <h1 className="pl-title">{playlist.name || "Untitled"}</h1>
+              <button className="pl-edit-btn" onClick={() => setEditingName(true)}>
+                ✏️
+              </button>
+            </div>
+          )}
           <div className="pl-divider" />
           <p className="pl-sub">
             {tracks.length} song{tracks.length !== 1 ? "s" : ""} · Rate each
@@ -409,8 +488,17 @@ function PlaylistDetail({ playlist, onBack }) {
               style={{ animationDelay: `${i * 0.05}s` }}
             >
               <div className="pl-track-info">
-                <div className="pl-track-title">
-                  {t.title || t.name || "Unknown"}
+                <div className="pl-track-title-row">
+                  <div className="pl-track-title">
+                    {t.title || t.name || "Unknown"}
+                  </div>
+                  <button
+                    className="pl-remove-btn"
+                    onClick={() => handleRemoveTrack(t.id, t.title || t.name || "Unknown")}
+                    title="Remove from playlist"
+                  >
+                    🗑️
+                  </button>
                 </div>
                 <div className="pl-track-artist">
                   {t.artist || "Unknown Artist"}
