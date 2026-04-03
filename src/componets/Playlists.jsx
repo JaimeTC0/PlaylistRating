@@ -73,27 +73,27 @@ function PlaylistList({ onOpen }) {
   });
 
   const handleDelete = async (playlistId, playlistName) => {
-  if (!window.confirm(`Are you sure you want to delete "${playlistName}"?`)) return;
-  if (!window.confirm("This action cannot be undone. Confirm delete?")) return;
+    if (!window.confirm(`Are you sure you want to delete "${playlistName}"?`))
+      return;
 
-  try {
-    const res = await fetch(`http://localhost:8080/playlists/${playlistId}/delete`, {
-      method: "POST",
-    });
+    try {
+      const res = await fetch(`http://localhost:8080/playlists/${playlistId}`, {
+        method: "DELETE",
+      });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Server Error:", errorData.message);
-      throw new Error(errorData.message || "Delete failed");
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Server Error:", errorData.message);
+        throw new Error(errorData.message || "Delete failed");
+      }
+
+      setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
+      showToast(`Deleted "${playlistName}"`);
+    } catch (err) {
+      console.error("Delete Click Error:", err);
+      showToast("Failed to delete playlist");
     }
-
-    setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
-    showToast(`Deleted "${playlistName}"`);
-  } catch (err) {
-    console.error("Delete Click Error:", err);
-    showToast("Failed to delete playlist");
-  }
-};
+  };
 
   return (
     <div className="pl-page">
@@ -161,7 +161,16 @@ function PlaylistList({ onOpen }) {
               onClick={() => onOpen(p)}
             >
               <div className="pl-col pl-col-name pl-row-name">
-                {p.name || "Untitled"}
+                <span className="pl-name-text">{p.name || "Untitled"}</span>
+                <button
+                  className="pl-delete-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(p._id, p.name || "Untitled");
+                  }}
+                >
+                  🗑️
+                </button>
               </div>
               <div className="pl-col pl-col-tracks pl-muted">
                 {p.tracks?.length ?? 0} songs
@@ -182,18 +191,6 @@ function PlaylistList({ onOpen }) {
                 ) : (
                   <span className="pl-muted">—</span>
                 )}
-              </div>
-              {/* DELETE BUTTON */}
-              <div className="pl-row-actions">
-                <button
-                  className="pl-delete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent opening playlist
-                    handleDelete(p._id, p.name || "Untitled");
-                  }}
-                >
-                  🗑️
-                </button>
               </div>
             </div>
           ))}
@@ -228,14 +225,14 @@ function CreateModal({ onClose, onCreate, nextNumber }) {
       const res = await fetch("http://localhost:8080/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          name: genericName, 
-          tracks: [] // Creates it empty as requested
+        body: JSON.stringify({
+          name: genericName,
+          tracks: [], // Creates it empty as requested
         }),
       });
-      
+
       if (!res.ok) throw new Error();
-      
+
       const created = await res.json();
       onCreate(created);
     } catch {
@@ -250,19 +247,24 @@ function CreateModal({ onClose, onCreate, nextNumber }) {
       <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
         <div className="pl-modal-header">
           <h2 className="pl-modal-title">CONFIRM NEW PLAYLIST</h2>
-          <button className="pl-modal-close" onClick={onClose}>✕</button>
+          <button className="pl-modal-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="pl-modal-body">
           <p className="pl-sub">
-            This will create a new empty playlist named <strong>Playlist {nextNumber}</strong>. 
-            You can add songs to it later from the Search page.
+            This will create a new empty playlist named{" "}
+            <strong>Playlist {nextNumber}</strong>. You can add songs to it
+            later from the Search page.
           </p>
           {error && <p className="pl-error">{error}</p>}
         </div>
 
         <div className="pl-modal-footer">
-          <button className="pl-cancel-btn" onClick={onClose}>Cancel</button>
+          <button className="pl-cancel-btn" onClick={onClose}>
+            Cancel
+          </button>
           <button
             className="pl-create-btn"
             onClick={handleSubmit}

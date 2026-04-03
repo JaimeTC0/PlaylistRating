@@ -151,32 +151,25 @@
 /* =======================
    Playlist Rows
 ======================= */
-.pl-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .pl-row {
-  display: grid;
-  grid-template-columns: 1fr 80px 120px 120px;
+  display: flex;
   align-items: center;
+  justify-content: space-between; /* space between title+trash and stats */
   padding: 18px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   cursor: pointer;
   animation: plSlideIn 0.35s ease both;
   transition: background 0.12s, border-color 0.12s;
+  gap: 16px;
 }
 
-.pl-row:hover {
-  background: var(--surface2);
-  border-color: var(--border2);
-}
-
-@keyframes plSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+.pl-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* space between title and trashcan */
+  flex: 1;  /* takes remaining space */
+  overflow: hidden;
 }
 
 .pl-row-name {
@@ -186,49 +179,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
 }
 
-.pl-muted {
-  color: var(--muted);
-  font-size: 13px;
-  text-align: right;
-}
-
-.pl-rating-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  color: var(--accent);
-  display: block;
-  text-align: right;
-}
-
-.pl-rating-denom {
-  font-size: 13px;
-  color: var(--muted);
-  margin-left: 2px;
-}
-
-.pl-global-num {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  display: block;
-  text-align: right;
-}
-
-/* Hide delete button by default */
 .pl-delete-btn {
   opacity: 0;
-  transition: opacity 0.2s ease;
   background: transparent;
   border: none;
   color: #f55;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: opacity 0.2s ease;
 }
 
-/* Show delete button when hovering over row */
 .pl-row:hover .pl-delete-btn {
   opacity: 1;
 }
@@ -236,7 +198,6 @@
 .pl-delete-btn:hover {
   color: #ff0000;
 }
-
 /* =======================
    Track Cards (detail view)
 ======================= */
