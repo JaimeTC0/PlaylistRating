@@ -72,26 +72,28 @@ function PlaylistList({ onOpen }) {
     return ascending ? comp : -comp;
   });
 
-  // Inside PlaylistList component, after toggleSort and before return:
   const handleDelete = async (playlistId, playlistName) => {
-    // First confirmation
-    if (!window.confirm(`Are you sure you want to delete "${playlistName}"?`))
-      return;
-    // Second confirmation
-    if (!window.confirm("This action cannot be undone. Confirm delete?"))
-      return;
+  if (!window.confirm(`Are you sure you want to delete "${playlistName}"?`)) return;
+  if (!window.confirm("This action cannot be undone. Confirm delete?")) return;
 
-    try {
-      const res = await fetch(`http://localhost:8080/playlists/${playlistId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Delete failed");
-      setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
-      showToast(`Deleted "${playlistName}"`);
-    } catch (err) {
-      showToast("Failed to delete playlist");
+  try {
+    const res = await fetch(`http://localhost:8080/playlists/${playlistId}/delete`, {
+      method: "POST",
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Server Error:", errorData.message);
+      throw new Error(errorData.message || "Delete failed");
     }
-  };
+
+    setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
+    showToast(`Deleted "${playlistName}"`);
+  } catch (err) {
+    console.error("Delete Click Error:", err);
+    showToast("Failed to delete playlist");
+  }
+};
 
   return (
     <div className="pl-page">
@@ -202,6 +204,7 @@ function PlaylistList({ onOpen }) {
         <CreateModal
           onClose={() => setShowModal(false)}
           onCreate={handleCreate}
+          nextNumber={playlists.length + 1} // Add this line
         />
       )}
 
@@ -213,38 +216,26 @@ function PlaylistList({ onOpen }) {
 // =======================
 // CREATE MODAL
 // =======================
-function CreateModal({ onClose, onCreate }) {
-  const [name, setName] = useState("");
-  const [songs, setSongs] = useState([]);
-  const [songInput, setSongInput] = useState({ title: "", artist: "" });
+function CreateModal({ onClose, onCreate, nextNumber }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const addSong = () => {
-    if (!songInput.title.trim() || !songInput.artist.trim()) {
-      setError("Both song title and artist are required.");
-      return;
-    }
-    setSongs((prev) => [...prev, { ...songInput, id: Date.now().toString() }]);
-    setSongInput({ title: "", artist: "" });
-    setError("");
-  };
-
-  const removeSong = (id) =>
-    setSongs((prev) => prev.filter((s) => s.id !== id));
-
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      setError("Playlist name is required.");
-      return;
-    }
     setSaving(true);
+    const genericName = `Playlist ${nextNumber}`; // Generates "Playlist 3", etc.
+
     try {
       const res = await fetch("http://localhost:8080/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), tracks: songs }),
+        body: JSON.stringify({ 
+          name: genericName, 
+          tracks: [] // Creates it empty as requested
+        }),
       });
+      
+      if (!res.ok) throw new Error();
+      
       const created = await res.json();
       onCreate(created);
     } catch {
@@ -258,78 +249,26 @@ function CreateModal({ onClose, onCreate }) {
     <div className="pl-modal-overlay" onClick={onClose}>
       <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
         <div className="pl-modal-header">
-          <h2 className="pl-modal-title">NEW PLAYLIST</h2>
-          <button className="pl-modal-close" onClick={onClose}>
-            ✕
-          </button>
+          <h2 className="pl-modal-title">CONFIRM NEW PLAYLIST</h2>
+          <button className="pl-modal-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="pl-modal-body">
-          <label className="pl-label">PLAYLIST NAME</label>
-          <input
-            className="pl-input"
-            placeholder="e.g. Late Night Drives"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-
-          <label className="pl-label" style={{ marginTop: 24 }}>
-            ADD SONGS
-          </label>
-          <div className="pl-song-row">
-            <input
-              className="pl-input"
-              placeholder="Song title"
-              value={songInput.title}
-              onChange={(e) =>
-                setSongInput((p) => ({ ...p, title: e.target.value }))
-              }
-              onKeyDown={(e) => e.key === "Enter" && addSong()}
-            />
-            <input
-              className="pl-input"
-              placeholder="Artist"
-              value={songInput.artist}
-              onChange={(e) =>
-                setSongInput((p) => ({ ...p, artist: e.target.value }))
-              }
-              onKeyDown={(e) => e.key === "Enter" && addSong()}
-            />
-            <button className="pl-add-song-btn" onClick={addSong}>
-              +
-            </button>
-          </div>
-
+          <p className="pl-sub">
+            This will create a new empty playlist named <strong>Playlist {nextNumber}</strong>. 
+            You can add songs to it later from the Search page.
+          </p>
           {error && <p className="pl-error">{error}</p>}
-
-          {songs.length > 0 && (
-            <ul className="pl-song-list">
-              {songs.map((s) => (
-                <li key={s.id} className="pl-song-item">
-                  <span className="pl-song-name">{s.title}</span>
-                  <span className="pl-song-artist">{s.artist}</span>
-                  <button
-                    className="pl-remove-btn"
-                    onClick={() => removeSong(s.id)}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         <div className="pl-modal-footer">
-          <button className="pl-cancel-btn" onClick={onClose}>
-            Cancel
-          </button>
+          <button className="pl-cancel-btn" onClick={onClose}>Cancel</button>
           <button
             className="pl-create-btn"
             onClick={handleSubmit}
             disabled={saving}
           >
-            {saving ? "Creating..." : "Create Playlist"}
+            {saving ? "Creating..." : "Confirm & Create"}
           </button>
         </div>
       </div>

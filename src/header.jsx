@@ -14,6 +14,12 @@ function Head({ setPage, currentPage }) {
         >
           Home
         </button>
+        <button 
+          onClick={() => setPage("search")} 
+          className={currentPage === "search" ? "active" : ""}
+        >
+          Search
+        </button>
         <button
           onClick={() => setPage("artist")}
           className={currentPage === "artist" ? "active" : ""}

@@ -129,6 +129,50 @@ app.post("/rate", requireDB, async (req, res) => {
   }
 });
 
+// DELETE a playlist by ID
+app.post("/playlists/:id/delete", requireDB, async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+
+    const result = await db.collection("Playlists").deleteOne({
+      _id: new ObjectId(playlistId),
+    });
+
+    if (result.deletedCount === 1) {
+      console.log("Successfully deleted from 'Playlists' collection");
+      res.json({ message: "Playlist deleted!" });
+    } else {
+      res.status(404).json({ message: "Playlist not found in 'Playlists' collection" });
+    }
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ADD a song to a playlist
+app.post("/playlists/:id/add-track", requireDB, async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+    const { track } = req.body;
+
+    // Use "Playlists" (plural) to match your working GET/POST routes
+    const result = await db.collection("Playlists").updateOne(
+      { _id: new ObjectId(playlistId) },
+      { $push: { tracks: track } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Playlist not found" });
+    }
+
+    res.json({ message: "Track added successfully!" });
+  } catch (err) {
+    console.error("ADD TRACK ERROR:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // =======================
 // 🎵 LAST.FM HELPER
 // =======================

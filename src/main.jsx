@@ -6,6 +6,7 @@ import ArtistGet from "./componets/ArtistGet.jsx";
 import Foot from "./Foot.jsx";
 import MainPage from "./MainPage.jsx";
 import Playlists from "./componets/Playlists.jsx"; // adjust path if needed
+import Search from "./componets/Search.jsx";
 
 function App() {
   // page state: "home", "artist", or "ratings"
@@ -15,6 +16,7 @@ function App() {
   // function to render the correct page
   const renderPage = () => {
     if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
+    if (page === "search") return <Search />;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
     if (page === "playlists") return <Playlists />;
   };

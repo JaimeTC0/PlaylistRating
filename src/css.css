@@ -118,3 +118,202 @@ footer {
     text-align: center;
     padding: 16px;
 }
+
+/* =======================
+   🔍 SEARCH TAB STYLES
+   ======================= */
+
+/* Container for the search results grid */
+.search-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    width: 100%;
+    text-align: center;
+}
+
+.search-container h1 {
+    font-size: 3.5rem;
+    margin-bottom: 30px;
+    color: var(--text);
+}
+
+/* The form wrapper */
+.search-form {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 700px;
+}
+
+/* The Input Field */
+.search-form input {
+    flex-grow: 1;
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 50px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.3s;
+}
+
+.search-form input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* The Search Button */
+.search-form button {
+    padding: 0 30px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 50px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.search-form button:hover {
+    transform: scale(1.05);
+}
+
+.search-results-grid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center; 
+    gap: 20px;
+    padding: 20px 16px;
+    width: 100%;
+}
+
+/* Individual Track Card */
+.track-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 240px;
+    min-width: 200px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.track-info {
+    text-align: left;
+    margin-top: 10px;
+}
+
+.track-card:hover {
+    background: var(--surface2);
+    border-color: var(--border2);
+    transform: translateY(-4px);
+}
+
+/* Album Art */
+.track-art {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-color: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    object-fit: cover;
+    margin-bottom: 12px;
+}
+
+/* Text Formatting */
+.track-artist, .track-album {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    color: var(--text);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.track-artist {
+    color: var(--accent); /* Uses your neon yellow */
+    font-size: 0.9rem;
+    margin: 4px 0;
+}
+
+.track-album {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+/* Bottom Action Area */
+.track-actions {
+    margin-top: auto;
+    padding-top: 15px;
+}
+
+.track-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+/* The Playlist Dropdown */
+.add-select:focus {
+    outline: 1px solid var(--accent);
+}
+
+/* Container to put select and button side-by-side */
+.add-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+/* The Dropdown (shrunken slightly to make room) */
+.add-select {
+    flex-grow: 1; /* Takes up most of the space */
+    padding: 8px;
+    background: var(--surface3);
+    color: var(--text);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* The New Add Button */
+.add-btn {
+    background: var(--accent); /* Your neon yellow #e8ff47 */
+    color: var(--bg);          /* Dark text #0a0a0a for contrast */
+    border: none;
+    border-radius: 4px;
+    width: 38px;
+    height: 38px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-btn:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.add-btn:active {
+    transform: scale(0.95);
+}
