@@ -191,12 +191,29 @@
   transition: opacity 0.2s ease;
 }
 
-.pl-row:hover .pl-delete-btn {
+.pl-add-btn {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: opacity 0.2s ease;
+  margin-right: 8px;
+}
+
+.pl-row:hover .pl-delete-btn,
+.pl-row:hover .pl-add-btn {
   opacity: 1;
 }
 
 .pl-delete-btn:hover {
   color: #ff0000;
+}
+
+.pl-add-btn:hover {
+  color: #fff;
 }
 /* =======================
    Track Cards (detail view)

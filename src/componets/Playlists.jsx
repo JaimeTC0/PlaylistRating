@@ -5,7 +5,7 @@ import { optimisticUpdate } from "../ratingUtils";
 // =======================
 // PLAYLIST LIST VIEW
 // =======================
-function PlaylistList({ onOpen }) {
+function PlaylistList({ onOpen, setPage }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -162,6 +162,15 @@ function PlaylistList({ onOpen }) {
             >
               <div className="pl-col pl-col-name pl-row-name">
                 <span className="pl-name-text">{p.name || "Untitled"}</span>
+                <button
+                  className="pl-add-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPage("search");
+                  }}
+                >
+                  +
+                </button>
                 <button
                   className="pl-delete-btn"
                   onClick={(e) => {

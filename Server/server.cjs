@@ -130,7 +130,7 @@ app.post("/rate", requireDB, async (req, res) => {
 });
 
 // DELETE a playlist by ID
-app.post("/playlists/:id/delete", requireDB, async (req, res) => {
+app.delete("/playlists/:id", requireDB, async (req, res) => {
   try {
     const playlistId = req.params.id;
 

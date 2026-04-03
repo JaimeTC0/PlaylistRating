@@ -18,7 +18,7 @@ function App() {
     if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
     if (page === "search") return <Search />;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
-    if (page === "playlists") return <Playlists />;
+    if (page === "playlists") return <Playlists setPage={setPage} />;
   };
 
   return (
