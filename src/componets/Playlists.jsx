@@ -166,10 +166,11 @@ function PlaylistList({ onOpen, setPage }) {
                   className="pl-add-btn"
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log("Going to search page");
                     setPage("search");
                   }}
                 >
-                  +
+                  ➕
                 </button>
                 <button
                   className="pl-delete-btn"
@@ -461,7 +462,7 @@ function PlaylistDetail({ playlist, onBack }) {
 // =======================
 // ROOT EXPORT
 // =======================
-export default function Playlists() {
+export default function Playlists({ setPage }) {
   const [openPlaylist, setOpenPlaylist] = useState(null);
 
   if (openPlaylist) {
@@ -472,5 +473,5 @@ export default function Playlists() {
       />
     );
   }
-  return <PlaylistList onOpen={setOpenPlaylist} />;
+  return <PlaylistList onOpen={setOpenPlaylist} setPage={setPage} />;
 }

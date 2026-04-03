@@ -77,6 +77,30 @@ function Search() {
     .catch((err) => console.error("Error loading playlists:", err));
 }, []);
 
+  useEffect(() => {
+    // Load popular tracks on mount
+    loadPopularTracks();
+  }, []);
+
+  const loadPopularTracks = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8080/popular");
+      if (res.ok) {
+        const data = await res.json();
+        setResults(Array.isArray(data) ? data : []);
+      } else {
+        console.error("Popular failed with status:", res.status);
+        setResults([]);
+      }
+    } catch (err) {
+      console.error("Popular failed:", err);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;

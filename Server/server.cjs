@@ -273,6 +273,81 @@ app.get("/search", async (req, res) => {
 });
 
 // =======================
+// 🎵 POPULAR TRACKS
+// =======================
+
+app.get("/popular", async (req, res) => {
+  console.log("Fetching popular tracks...");
+  try {
+    await getSpotifyToken();
+    console.log("Spotify token ready");
+
+    const response = await axios.get("https://ws.audioscrobbler.com/2.0/", {
+      params: {
+        method: "chart.getTopTracks",
+        api_key: process.env.LASTFM_API_KEY,
+        format: "json",
+        limit: 20
+      },
+    });
+    console.log("Last.fm response status:", response.status);
+    console.log("Last.fm tracks count:", response.data.tracks?.track?.length || 0);
+
+    const tracks = response.data.tracks.track;
+    if (!tracks.length) return res.json([]);
+
+    // Enrich each track with Spotify data
+    const results = await Promise.all(
+      tracks.map(async (track) => {
+        const artist = track.artist.name;
+        const name = track.name;
+        const listeners = parseInt(track.listeners);
+
+        try {
+          const searchResponse = await axios.get(
+            "https://api.spotify.com/v1/search",
+            {
+              params: { q: `${name} ${artist}`, type: "track", limit: 1 },
+              headers: { Authorization: `Bearer ${spotifyToken}` },
+            },
+          );
+
+          const spotifyTrack = searchResponse.data.tracks?.items?.[0];
+          return {
+            id: spotifyTrack?.id || `lastfm-${name}-${artist}`,
+            name: spotifyTrack?.name || name,
+            artist: spotifyTrack?.artists?.[0]?.name || artist,
+            album: spotifyTrack?.album?.name || "Unknown",
+            albumArt: spotifyTrack?.album?.images?.[1]?.url || null,
+            listeners,
+            baseRating: 5.0,
+            averageRating: 5.0,
+          };
+        } catch (err) {
+          console.error("Spotify search failed for", name, artist, err.message);
+          return {
+            id: `lastfm-${name}-${artist}`,
+            name,
+            artist,
+            album: "Unknown",
+            albumArt: null,
+            listeners,
+            baseRating: 5.0,
+            averageRating: 5.0,
+          };
+        }
+      }),
+    );
+
+    results.sort((a, b) => b.listeners - a.listeners);
+    res.json(results);
+  } catch (err) {
+    console.error("Popular error:", err.message);
+    res.status(502).json({ message: "Error fetching popular tracks" });
+  }
+});
+
+// =======================
 // ⭐ TRACK RATING ROUTES
 // =======================
 
