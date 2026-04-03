@@ -43,6 +43,7 @@ async function getSpotifyToken() {
   // Only fetch a new token if expired (with 60s buffer)
   if (spotifyToken && Date.now() < spotifyTokenExpiry - 60_000) return;
 
+  console.log("Fetching new Spotify token...");
   const response = await axios.post(
     "https://accounts.spotify.com/api/token",
     new URLSearchParams({ grant_type: "client_credentials" }),
@@ -57,9 +58,11 @@ async function getSpotifyToken() {
       },
     },
   );
+  console.log("Spotify token response status:", response.status);
 
   spotifyToken = response.data.access_token;
   spotifyTokenExpiry = Date.now() + response.data.expires_in * 1000;
+  console.log("Token obtained successfully");
 }
 
 // =======================
@@ -222,8 +225,11 @@ app.get("/search", async (req, res) => {
     return res.status(400).json({ message: "Query parameter 'q' is required" });
 
   try {
+    console.log("Fetching Spotify token...");
     await getSpotifyToken();
+    console.log("Token fetched successfully");
 
+    console.log("Searching Spotify for:", query);
     const searchResponse = await axios.get(
       "https://api.spotify.com/v1/search",
       {
@@ -231,6 +237,7 @@ app.get("/search", async (req, res) => {
         headers: { Authorization: `Bearer ${spotifyToken}` },
       },
     );
+    console.log("Spotify search response status:", searchResponse.status);
 
     const tracks = searchResponse.data.tracks.items;
     if (!tracks.length) return res.json([]);

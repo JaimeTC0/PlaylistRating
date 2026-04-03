@@ -1,4 +1,65 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+ 
+const WORDS = [
+  { text: "rate",     color: "#D85A30" },
+  { text: "vibe",   color: "#7F77DD" },
+  { text: "love",     color: "#D4537E" },
+  { text: "discover", color: "#1D9E75" },
+  { text: "listen",    color: "#378ADD" },
+];
+ 
+function RotatingWord() {
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState("in"); // "in" | "out"
+  const [chars, setChars] = useState([]);
+ 
+  useEffect(() => {
+    setChars(Array.from(WORDS[index].text));
+    setPhase("in");
+  }, [index]);
+ 
+  useEffect(() => {
+    if (phase !== "in") return;
+    const timer = setTimeout(() => setPhase("out"), 2000);
+    return () => clearTimeout(timer);
+  }, [phase, index]);
+ 
+  useEffect(() => {
+    if (phase !== "out") return;
+    const duration = chars.length * 32 + 280;
+    const timer = setTimeout(() => {
+      setIndex(i => (i + 1) % WORDS.length);
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [phase, chars.length]);
+ 
+  const word = WORDS[index];
+ 
+  return (
+    <span style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
+      {chars.map((ch, i) => {
+        const isOut = phase === "out";
+        const delay = isOut
+          ? (chars.length - 1 - i) * 32
+          : i * 38;
+        return (
+          <span
+            key={`${index}-${i}`}
+            style={{
+              display: "inline-block",
+              color: word.color,
+              opacity: phase === "in" ? 1 : 0,
+              transform: phase === "in" ? "translateY(0)" : "translateY(-80%)",
+              transition: `opacity 0.22s ${delay}ms, transform 0.28s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+            }}
+          >
+            {ch}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 function Search() {
   const [query, setQuery] = useState("");
@@ -23,10 +84,16 @@ function Search() {
     setLoading(true);
     try {
       const res = await fetch(`http://localhost:8080/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setResults(data);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(Array.isArray(data) ? data : []);
+      } else {
+        console.error("Search failed with status:", res.status);
+        setResults([]);
+      }
     } catch (err) {
       console.error("Search failed:", err);
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -61,7 +128,7 @@ function Search() {
   return (
     <div className="search-page">
         <div className="search-container">
-            <h1>Find Music to Rate</h1>
+            <h1>Find Music to <RotatingWord /></h1>
             <form onSubmit={handleSearch} className="search-form">
             <input
                 type="text"
