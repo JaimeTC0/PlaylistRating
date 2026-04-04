@@ -1,6 +1,20 @@
 import { useState } from "react";
 import axios from "axios";
 
+import axios from "axios";
+
+const API = "http://localhost:5176/api";
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    await axios.post(`${API}/auth/signup`, form);
+    alert("User created!");
+  } catch (err) {
+    console.error(err);
+  }
+};
 export default function Signup() {
   const [form, setForm] = useState({
     username: "",
