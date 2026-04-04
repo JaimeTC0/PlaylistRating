@@ -3,7 +3,7 @@ import axios from "axios";
 
 import axios from "axios";
 
-const API = "http://localhost:5176/api";
+const API = "http://localhost:5173/api";
 
 const handleSubmit = async (e) => {
   e.preventDefault();
