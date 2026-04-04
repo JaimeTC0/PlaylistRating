@@ -405,7 +405,7 @@ app.get("/popular", async (req, res) => {
 
 // POST a user rating for a track
 app.post("/tracks/rate", requireDB, async (req, res) => {
-  const { trackId, trackName, artist, rating } = req.body;
+  const { trackId, trackName, artist, rating, userId } = req.body;
 
   if (!trackId || !trackName || !artist) {
     return res
@@ -420,17 +420,28 @@ app.post("/tracks/rate", requireDB, async (req, res) => {
 
   try {
     const collection = db.collection("TrackRatings");
+    
+    // Use upsert to replace if user already rated this track, or insert if new
+    const userIdentifier = userId || "anonymous";
+    await collection.updateOne(
+      { trackId, userId: userIdentifier },
+      {
+        $set: {
+          trackId,
+          userId: userIdentifier,
+          trackName,
+          artist,
+          rating,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
 
-    // Store individual rating
-    await collection.insertOne({
-      trackId,
-      trackName,
-      artist,
-      rating,
-      createdAt: new Date(),
-    });
-
-    // Recalculate average from all user ratings for this track
+    // Recalculate average from all unique user ratings for this track
     const allRatings = await collection.find({ trackId }).toArray();
     const userAverage =
       allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length;
@@ -456,25 +467,68 @@ app.post("/tracks/rate", requireDB, async (req, res) => {
   }
 });
 
+// GET user's rating for a specific track
+app.get("/tracks/:trackId/user-rating", requireDB, async (req, res) => {
+  const { trackId } = req.params;
+  const { userId } = req.query;
+
+  try {
+    const collection = db.collection("TrackRatings");
+    const userRating = await collection.findOne({ trackId, userId: userId || "anonymous" });
+
+    res.json({
+      trackId,
+      userRating: userRating?.rating || null,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error fetching user rating" });
+  }
+});
+
 // GET ratings for a specific track
 app.get("/tracks/:trackId/rating", requireDB, async (req, res) => {
   const { trackId } = req.params;
+  const { artist, trackName } = req.query;
 
   try {
     const collection = db.collection("TrackRatings");
     const allRatings = await collection.find({ trackId }).toArray();
+    
+    let baseRating = 2.5; // default fallback
+    
+    if (allRatings.length) {
+      // Get artist and track name from the first rating to fetch baseline
+      const firstRating = allRatings[0];
+      const result = await getLastFmBaseRating(firstRating.artist, firstRating.trackName);
+      baseRating = result.baseRating;
+      
+      const userAverage =
+        allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length;
 
-    if (!allRatings.length) {
-      return res.json({ trackId, userRatingCount: 0, averageRating: null });
+      // Blend with baseline (baseline counts as 3 votes)
+      const BASELINE_WEIGHT = 3;
+      const blendedRating =
+        (baseRating * BASELINE_WEIGHT + userAverage * allRatings.length) /
+        (BASELINE_WEIGHT + allRatings.length);
+
+      return res.json({
+        trackId,
+        userRatingCount: allRatings.length,
+        averageRating: parseFloat(blendedRating.toFixed(2)),
+      });
     }
-
-    const userAverage =
-      allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length;
-
+    
+    // No user ratings yet - fetch baseline if artist/trackName provided
+    if (artist && trackName) {
+      const result = await getLastFmBaseRating(artist, trackName);
+      baseRating = result.baseRating;
+    }
+    
     res.json({
       trackId,
-      userRatingCount: allRatings.length,
-      averageRating: parseFloat(userAverage.toFixed(2)),
+      userRatingCount: 0,
+      averageRating: baseRating,
     });
   } catch (e) {
     console.error(e);

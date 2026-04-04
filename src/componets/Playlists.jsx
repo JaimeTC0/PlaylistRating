@@ -311,6 +311,16 @@ function PlaylistDetail({ playlist, onBack }) {
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(playlist.name || "Untitled");
 
+  // Get or create user ID for rating tracking
+  const getUserId = () => {
+    let userId = localStorage.getItem("playlistRatingUserId");
+    if (!userId) {
+      userId = "user_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("playlistRatingUserId", userId);
+    }
+    return userId;
+  };
+
   const showToast = (msg) => {
     setToast(msg);
     setToastVisible(true);
@@ -361,20 +371,33 @@ function PlaylistDetail({ playlist, onBack }) {
 
   useEffect(() => {
     async function enrichTracks() {
+      const userId = getUserId();
       const enriched = await Promise.all(
         (playlist.tracks || []).map(async (t) => {
           try {
-            const res = await fetch(
-              `http://localhost:8080/tracks/${t.id}/rating`,
-            );
-            const data = await res.json();
+            const artistParam = encodeURIComponent(t.artist || "Unknown Artist");
+            const trackNameParam = encodeURIComponent(t.title || t.name || "Unknown");
+            
+            const [globalRes, userRes] = await Promise.all([
+              fetch(
+                `http://localhost:8080/tracks/${t.id}/rating?artist=${artistParam}&trackName=${trackNameParam}`,
+              ),
+              fetch(
+                `http://localhost:8080/tracks/${t.id}/user-rating?userId=${encodeURIComponent(userId)}`,
+              ),
+            ]);
+            
+            const globalData = await globalRes.json();
+            const userData = await userRes.json();
+            
             return {
               ...t,
-              globalAvg: data.averageRating,
-              userRatingCount: data.userRatingCount,
+              globalAvg: globalData.averageRating,
+              userRatingCount: globalData.userRatingCount,
+              userRating: userData.userRating,
             };
           } catch {
-            return { ...t, globalAvg: null, userRatingCount: 0 };
+            return { ...t, globalAvg: null, userRatingCount: 0, userRating: null };
           }
         }),
       );
@@ -404,6 +427,7 @@ function PlaylistDetail({ playlist, onBack }) {
 
     try {
       const track = tracks.find((t) => t.id === trackId);
+      const userId = getUserId();
       const res = await fetch("http://localhost:8080/tracks/rate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -412,6 +436,7 @@ function PlaylistDetail({ playlist, onBack }) {
           trackName: track?.title || track?.name || "",
           artist: track?.artist || "",
           rating,
+          userId,
         }),
       });
       const data = await res.json();
