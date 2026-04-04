@@ -33,6 +33,7 @@
   justify-content: space-between;
   margin-bottom: 48px;
   gap: 24px;
+  position: relative;
 }
 
 .pl-detail-header {

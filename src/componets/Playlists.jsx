@@ -3,6 +3,64 @@ import "./Playlists.css";
 import { optimisticUpdate } from "../ratingUtils";
 
 // =======================
+// ROTATING MUSIC EMOJIS
+// =======================
+function RotatingEmojis() {
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState("in"); // "in" | "out"
+  const [currentEmojis, setCurrentEmojis] = useState([]);
+
+  const EMOJIS = ["🎵", "🎶", "🎼", "🎧", "🎤", "🎷", "🎸", "🥁", "🎹", "🎺", "🎻", "⏯️", "🔊", "💿", "🔥"];
+
+  useEffect(() => {
+    const startIdx = index * 5;
+    const endIdx = Math.min(startIdx + 5, EMOJIS.length);
+    setCurrentEmojis(EMOJIS.slice(startIdx, endIdx));
+    setPhase("in");
+  }, [index]);
+
+  useEffect(() => {
+    if (phase !== "in") return;
+    const timer = setTimeout(() => setPhase("out"), 2000);
+    return () => clearTimeout(timer);
+  }, [phase, index]);
+
+  useEffect(() => {
+    if (phase !== "out") return;
+    const duration = currentEmojis.length * 60 + 500;
+    const timer = setTimeout(() => {
+      setIndex(i => (i + 1) % Math.ceil(EMOJIS.length / 5));
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [phase, currentEmojis.length]);
+
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", gap: "20px" }}>
+      {currentEmojis.map((emoji, i) => {
+        const isOut = phase === "out";
+        const delay = isOut
+          ? (currentEmojis.length - 1 - i) * 60
+          : i * 80;
+        return (
+          <span
+            key={`${index}-${i}`}
+            style={{
+              display: "inline-block",
+              fontSize: "56px",
+              opacity: phase === "in" ? 1 : 0,
+              transform: phase === "in" ? "translateY(0)" : "translateY(-20px)",
+              transition: `opacity 0.3s ${delay}ms, transform 0.4s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+            }}
+          >
+            {emoji}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// =======================
 // PLAYLIST LIST VIEW
 // =======================
 function PlaylistList({ onOpen, setPage }) {
@@ -106,6 +164,9 @@ function PlaylistList({ onOpen, setPage }) {
           </h1>
           <div className="pl-divider" />
           <p className="pl-sub">Click a playlist to explore · Sort by column</p>
+        </div>
+        <div style={{ position: "absolute", left: "450px", top: "120px", width: "100%" }}>
+          <RotatingEmojis />
         </div>
         <button className="pl-new-btn" onClick={() => setShowModal(true)}>
           + NEW PLAYLIST
