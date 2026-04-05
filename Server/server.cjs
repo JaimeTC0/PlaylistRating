@@ -38,6 +38,16 @@ function requireDB(req, res, next) {
 
 let spotifyToken = null;
 let spotifyTokenExpiry = 0;
+let popularCache = {
+  data: null,
+  expiresAt: 0,
+  pending: null,
+};
+
+const POPULAR_CACHE_TTL_MS = 10 * 60 * 1000;
+const SPOTIFY_REQUEST_DELAY_MS = 200;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function getSpotifyToken() {
   // Only fetch a new token if expired (with 60s buffer)
@@ -63,6 +73,115 @@ async function getSpotifyToken() {
   spotifyToken = response.data.access_token;
   spotifyTokenExpiry = Date.now() + response.data.expires_in * 1000;
   console.log("Token obtained successfully");
+}
+
+async function getPopularTracks() {
+  if (popularCache.data && Date.now() < popularCache.expiresAt) {
+    console.log("Returning cached popular tracks");
+    return popularCache.data;
+  }
+
+  if (popularCache.pending) {
+    console.log("Waiting for in-flight popular tracks request");
+    return popularCache.pending;
+  }
+
+  popularCache.pending = (async () => {
+    console.log("Fetching popular tracks from Last.fm and Spotify...");
+
+    await getSpotifyToken();
+
+    const response = await axios.get("https://ws.audioscrobbler.com/2.0/", {
+      params: {
+        method: "chart.getTopTracks",
+        api_key: process.env.LASTFM_API_KEY,
+        format: "json",
+        limit: 10,
+      },
+    });
+
+    const tracks = response.data.tracks.track;
+    if (!tracks.length) return [];
+
+    const results = [];
+    let spotifyDisabledUntil = 0;
+
+    for (const track of tracks) {
+      const artist = track.artist.name;
+      const name = track.name;
+      const listeners = parseInt(track.listeners);
+
+      if (Date.now() < spotifyDisabledUntil) {
+        results.push({
+          id: `lastfm-${name}-${artist}`,
+          name,
+          artist,
+          album: "Unknown",
+          albumArt: null,
+          listeners,
+          baseRating: 5.0,
+          averageRating: 5.0,
+        });
+        continue;
+      }
+
+      try {
+        const searchResponse = await axios.get(
+          "https://api.spotify.com/v1/search",
+          {
+            params: { q: `${name} ${artist}`, type: "track", limit: 1 },
+            headers: { Authorization: `Bearer ${spotifyToken}` },
+          },
+        );
+
+        const spotifyTrack = searchResponse.data.tracks?.items?.[0];
+        results.push({
+          id: spotifyTrack?.id || `lastfm-${name}-${artist}`,
+          name: spotifyTrack?.name || name,
+          artist: spotifyTrack?.artists?.[0]?.name || artist,
+          album: spotifyTrack?.album?.name || "Unknown",
+          albumArt: spotifyTrack?.album?.images?.[1]?.url || null,
+          listeners,
+          baseRating: 5.0,
+          averageRating: 5.0,
+        });
+      } catch (err) {
+        const status = err.response?.status;
+        console.error("Spotify search failed for", name, artist, err.message);
+
+        if (status === 429) {
+          const retryAfterSeconds = Number(err.response?.headers?.["retry-after"] || 60);
+          const cooldownSeconds = Math.min(Math.max(retryAfterSeconds, 60), 300);
+          spotifyDisabledUntil = Date.now() + cooldownSeconds * 1000;
+          console.warn(`Spotify rate limited. Falling back to Last.fm-only results for ${cooldownSeconds}s.`);
+        }
+
+        results.push({
+          id: `lastfm-${name}-${artist}`,
+          name,
+          artist,
+          album: "Unknown",
+          albumArt: null,
+          listeners,
+          baseRating: 5.0,
+          averageRating: 5.0,
+        });
+      }
+
+      await sleep(SPOTIFY_REQUEST_DELAY_MS);
+    }
+
+    results.sort((a, b) => b.listeners - a.listeners);
+    popularCache.data = results;
+    popularCache.expiresAt = Date.now() + POPULAR_CACHE_TTL_MS;
+    return results;
+  })();
+
+  try {
+    return await popularCache.pending;
+  } finally {
+    popularCache.pending = null;
+  }
 }
 
 // =======================
@@ -331,67 +450,7 @@ app.get("/search", async (req, res) => {
 app.get("/popular", async (req, res) => {
   console.log("Fetching popular tracks...");
   try {
-    await getSpotifyToken();
-    console.log("Spotify token ready");
-
-    const response = await axios.get("https://ws.audioscrobbler.com/2.0/", {
-      params: {
-        method: "chart.getTopTracks",
-        api_key: process.env.LASTFM_API_KEY,
-        format: "json",
-        limit: 20
-      },
-    });
-    console.log("Last.fm response status:", response.status);
-    console.log("Last.fm tracks count:", response.data.tracks?.track?.length || 0);
-
-    const tracks = response.data.tracks.track;
-    if (!tracks.length) return res.json([]);
-
-    // Enrich each track with Spotify data
-    const results = await Promise.all(
-      tracks.map(async (track) => {
-        const artist = track.artist.name;
-        const name = track.name;
-        const listeners = parseInt(track.listeners);
-
-        try {
-          const searchResponse = await axios.get(
-            "https://api.spotify.com/v1/search",
-            {
-              params: { q: `${name} ${artist}`, type: "track", limit: 1 },
-              headers: { Authorization: `Bearer ${spotifyToken}` },
-            },
-          );
-
-          const spotifyTrack = searchResponse.data.tracks?.items?.[0];
-          return {
-            id: spotifyTrack?.id || `lastfm-${name}-${artist}`,
-            name: spotifyTrack?.name || name,
-            artist: spotifyTrack?.artists?.[0]?.name || artist,
-            album: spotifyTrack?.album?.name || "Unknown",
-            albumArt: spotifyTrack?.album?.images?.[1]?.url || null,
-            listeners,
-            baseRating: 5.0,
-            averageRating: 5.0,
-          };
-        } catch (err) {
-          console.error("Spotify search failed for", name, artist, err.message);
-          return {
-            id: `lastfm-${name}-${artist}`,
-            name,
-            artist,
-            album: "Unknown",
-            albumArt: null,
-            listeners,
-            baseRating: 5.0,
-            averageRating: 5.0,
-          };
-        }
-      }),
-    );
-
-    results.sort((a, b) => b.listeners - a.listeners);
+    const results = await getPopularTracks();
     res.json(results);
   } catch (err) {
     console.error("Popular error:", err.message);
@@ -420,7 +479,7 @@ app.post("/tracks/rate", requireDB, async (req, res) => {
 
   try {
     const collection = db.collection("TrackRatings");
-    
+
     // Use upsert to replace if user already rated this track, or insert if new
     const userIdentifier = userId || "anonymous";
     await collection.updateOne(
@@ -494,15 +553,15 @@ app.get("/tracks/:trackId/rating", requireDB, async (req, res) => {
   try {
     const collection = db.collection("TrackRatings");
     const allRatings = await collection.find({ trackId }).toArray();
-    
+
     let baseRating = 2.5; // default fallback
-    
+
     if (allRatings.length) {
       // Get artist and track name from the first rating to fetch baseline
       const firstRating = allRatings[0];
       const result = await getLastFmBaseRating(firstRating.artist, firstRating.trackName);
       baseRating = result.baseRating;
-      
+
       const userAverage =
         allRatings.reduce((sum, r) => sum + r.rating, 0) / allRatings.length;
 
@@ -518,13 +577,13 @@ app.get("/tracks/:trackId/rating", requireDB, async (req, res) => {
         averageRating: parseFloat(blendedRating.toFixed(2)),
       });
     }
-    
+
     // No user ratings yet - fetch baseline if artist/trackName provided
     if (artist && trackName) {
       const result = await getLastFmBaseRating(artist, trackName);
       baseRating = result.baseRating;
     }
-    
+
     res.json({
       trackId,
       userRatingCount: 0,
@@ -576,63 +635,61 @@ app.get("/", (req, res) => res.send("Server is running"));
 
 app.get("/artists/:id", async (req, res) => {
 
-    try{
-        let collection = db.collection("Artists");
-        let result = await collection.findOne({ArtistID: req.params.id});
+  try {
+    let collection = db.collection("Artists");
+    let result = await collection.findOne({ ArtistID: req.params.id });
 
-        if(!result){
-            res.status(404).json({ message: "Artist not found" });
-            return;
-        }
-        res.json(result);
+    if (!result) {
+      res.status(404).json({ message: "Artist not found" });
+      return;
     }
-    catch(e){
-        console.log(e);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.json(result);
+  }
+  catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-app.get("/albums/:ArtistID", async (req,res) => {
-    try{
-        let collection = db.collection("Albums");
-        let result = await collection.find({ ArtistID: req.params.ArtistID}).toArray();
+app.get("/albums/:ArtistID", async (req, res) => {
+  try {
+    let collection = db.collection("Albums");
+    let result = await collection.find({ ArtistID: req.params.ArtistID }).toArray();
 
-        if(result.length === 0){
-            res.status(404).json({message: "No albums found"});
-            return;
-        }
-        res.json(result);
+    if (result.length === 0) {
+      res.status(404).json({ message: "No albums found" });
+      return;
     }
-    catch(e){
-        console.log(e);
-        res.status(500).json({ message: "Server error" });
-    }
+    res.json(result);
+  }
+  catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 
 app.get("/allArtists", async (req, res) => {
-    try{
-        let collection = db.collection("Artists");
-        let result = await collection.find().toArray();
-        res.json(result);
-    }
-    catch(e){
-        console.log(e);
-    }
+  try {
+    let collection = db.collection("Artists");
+    let result = await collection.find().toArray();
+    res.json(result);
+  }
+  catch (e) {
+    console.log(e);
+  }
 });
 
 app.get("/allAlbums", async (req, res) => {
-    try{
-        let collection = db.collection("Albums");
-        let result = await collection.find().toArray();
-        res.json(result);
-    }
-    catch(e){
-        console.log(e);
-    }
+  try {
+    let collection = db.collection("Albums");
+    let result = await collection.find().toArray();
+    res.json(result);
+  }
+  catch (e) {
+    console.log(e);
+  }
 });
-
-app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
 // =======================
 // 🚀 START SERVER
@@ -640,6 +697,19 @@ app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
 connectDB()
   .then(() => {
+    // Set db for auth routes
+    const { setDb } = require("./routes/auth.cjs");
+    const authRouter = require("./routes/auth.cjs");
+    setDb(db);
+
+    // =======================
+    // 🔐 AUTH ROUTES
+    // =======================
+    app.use("/api/auth", authRouter);
+
+    // Catch-all 404 handler (must be registered last)
+    app.use((req, res) => res.status(404).json({ message: "Route not found" }));
+
     app.listen(PORT, () =>
       console.log(`Server running on http://localhost:${PORT}`),
     );

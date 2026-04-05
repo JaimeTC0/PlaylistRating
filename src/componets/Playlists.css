@@ -87,6 +87,8 @@
   cursor: pointer;
   white-space: nowrap;
   align-self: center;
+  position: relative;
+  z-index: 2;
   transition: opacity 0.15s, transform 0.15s;
 }
 
@@ -666,6 +668,28 @@
 
 .pl-create-btn:hover {
   opacity: 0.85;
+}
+
+.pl-danger-btn {
+  background: var(--error);
+  border: none;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.pl-danger-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.pl-danger-btn:hover {
+  opacity: 0.9;
 }
 
 /* =======================

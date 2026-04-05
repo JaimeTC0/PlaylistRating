@@ -1,6 +1,16 @@
 import './head.css'
+import { Link, useNavigate } from 'react-router-dom'
 
 function Head({ setPage, currentPage }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+    navigate("/login");
+  };
+
   return (
     <header className="header">
       <p className="PageHeader" onClick={() => setPage("home")}>
@@ -14,8 +24,8 @@ function Head({ setPage, currentPage }) {
         >
           Home
         </button>
-        <button 
-          onClick={() => setPage("search")} 
+        <button
+          onClick={() => setPage("search")}
           className={currentPage === "search" ? "active" : ""}
         >
           Search
@@ -32,9 +42,9 @@ function Head({ setPage, currentPage }) {
         >
           Playlists
         </button>
-        <a href="about.html" className="nav-link">
-          About Us
-        </a>
+        <button onClick={handleLogout} className="nav-link logout-btn">
+          Logout
+        </button>
       </nav>
     </header>
   )

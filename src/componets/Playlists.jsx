@@ -67,6 +67,7 @@ function PlaylistList({ onOpen, setPage }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [sortBy, setSortBy] = useState("name");
@@ -76,6 +77,10 @@ function PlaylistList({ onOpen, setPage }) {
     setToast(msg);
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2000);
+  };
+
+  const askConfirm = (title, message, onConfirm, confirmLabel = "Delete") => {
+    setConfirmDialog({ title, message, onConfirm, confirmLabel });
   };
 
   useEffect(() => {
@@ -131,26 +136,31 @@ function PlaylistList({ onOpen, setPage }) {
   });
 
   const handleDelete = async (playlistId, playlistName) => {
-    if (!window.confirm(`Are you sure you want to delete "${playlistName}"?`))
-      return;
+    askConfirm(
+      "Delete Playlist",
+      `Are you sure you want to delete "${playlistName}"? This cannot be undone.`,
+      async () => {
+        try {
+          const res = await fetch(`http://localhost:8080/playlists/${playlistId}`, {
+            method: "DELETE",
+          });
 
-    try {
-      const res = await fetch(`http://localhost:8080/playlists/${playlistId}`, {
-        method: "DELETE",
-      });
+          if (!res.ok) {
+            const errorData = await res.json();
+            console.error("Server Error:", errorData.message);
+            throw new Error(errorData.message || "Delete failed");
+          }
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Server Error:", errorData.message);
-        throw new Error(errorData.message || "Delete failed");
+          setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
+          showToast(`Deleted "${playlistName}"`);
+        } catch (err) {
+          console.error("Delete Click Error:", err);
+          showToast("Failed to delete playlist");
+        } finally {
+          setConfirmDialog(null);
+        }
       }
-
-      setPlaylists((prev) => prev.filter((p) => p._id !== playlistId));
-      showToast(`Deleted "${playlistName}"`);
-    } catch (err) {
-      console.error("Delete Click Error:", err);
-      showToast("Failed to delete playlist");
-    }
+    );
   };
 
   return (
@@ -165,7 +175,7 @@ function PlaylistList({ onOpen, setPage }) {
           <div className="pl-divider" />
           <p className="pl-sub">Click a playlist to explore · Sort by column</p>
         </div>
-        <div style={{ position: "absolute", left: "450px", top: "120px", width: "100%" }}>
+        <div style={{ position: "absolute", left: "450px", top: "120px", width: "100%", pointerEvents: "none" }}>
           <RotatingEmojis />
         </div>
         <button className="pl-new-btn" onClick={() => setShowModal(true)}>
@@ -276,6 +286,16 @@ function PlaylistList({ onOpen, setPage }) {
         />
       )}
 
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={confirmDialog.onConfirm}
+        />
+      )}
+
       <div className={`pl-toast${toastVisible ? " show" : ""}`}>{toast}</div>
     </div>
   );
@@ -361,6 +381,43 @@ function CreateModal({ onClose, onCreate, nextNumber }) {
   );
 }
 
+function ConfirmModal({ title, message, confirmLabel = "Delete", onCancel, onConfirm }) {
+  const [busy, setBusy] = useState(false);
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="pl-modal-overlay" onClick={onCancel}>
+      <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="pl-modal-header">
+          <h2 className="pl-modal-title">{title}</h2>
+          <button className="pl-modal-close" onClick={onCancel}>✕</button>
+        </div>
+
+        <div className="pl-modal-body">
+          <p className="pl-sub" style={{ marginTop: 0, textTransform: "none", letterSpacing: "0.4px" }}>
+            {message}
+          </p>
+        </div>
+
+        <div className="pl-modal-footer">
+          <button className="pl-cancel-btn" onClick={onCancel}>Cancel</button>
+          <button className="pl-danger-btn" onClick={handleConfirm} disabled={busy}>
+            {busy ? "Working..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // =======================
 // PLAYLIST DETAIL VIEW
 // =======================
@@ -371,6 +428,7 @@ function PlaylistDetail({ playlist, onBack }) {
   const [toastVisible, setToastVisible] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(playlist.name || "Untitled");
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Get or create user ID for rating tracking
   const getUserId = () => {
@@ -412,22 +470,29 @@ function PlaylistDetail({ playlist, onBack }) {
   };
 
   const handleRemoveTrack = async (trackId, trackName) => {
-    if (!window.confirm(`Remove "${trackName}" from this playlist?`)) return;
+    setConfirmDialog({
+      title: "Remove Track",
+      message: `Remove "${trackName}" from this playlist?`,
+      confirmLabel: "Remove",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`http://localhost:8080/playlists/${playlist._id}/remove-track`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trackId }),
+          });
 
-    try {
-      const res = await fetch(`http://localhost:8080/playlists/${playlist._id}/remove-track`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trackId }),
-      });
+          if (!res.ok) throw new Error();
 
-      if (!res.ok) throw new Error();
-
-      setTracks((prev) => prev.filter((t) => t.id !== trackId));
-      showToast(`Removed "${trackName}"`);
-    } catch {
-      showToast("Failed to remove track");
-    }
+          setTracks((prev) => prev.filter((t) => t.id !== trackId));
+          showToast(`Removed "${trackName}"`);
+        } catch {
+          showToast("Failed to remove track");
+        } finally {
+          setConfirmDialog(null);
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -438,7 +503,7 @@ function PlaylistDetail({ playlist, onBack }) {
           try {
             const artistParam = encodeURIComponent(t.artist || "Unknown Artist");
             const trackNameParam = encodeURIComponent(t.title || t.name || "Unknown");
-            
+
             const [globalRes, userRes] = await Promise.all([
               fetch(
                 `http://localhost:8080/tracks/${t.id}/rating?artist=${artistParam}&trackName=${trackNameParam}`,
@@ -447,10 +512,10 @@ function PlaylistDetail({ playlist, onBack }) {
                 `http://localhost:8080/tracks/${t.id}/user-rating?userId=${encodeURIComponent(userId)}`,
               ),
             ]);
-            
+
             const globalData = await globalRes.json();
             const userData = await userRes.json();
-            
+
             return {
               ...t,
               globalAvg: globalData.averageRating,
@@ -505,11 +570,11 @@ function PlaylistDetail({ playlist, onBack }) {
         prev.map((t) =>
           t.id === trackId
             ? {
-                ...t,
-                userRating: rating,
-                globalAvg: data.averageRating,
-                userRatingCount: data.userRatingCount,
-              }
+              ...t,
+              userRating: rating,
+              globalAvg: data.averageRating,
+              userRatingCount: data.userRatingCount,
+            }
             : t,
         ),
       );
@@ -613,7 +678,7 @@ function PlaylistDetail({ playlist, onBack }) {
                     disabled={saving === t.id}
                     className={[
                       "pl-star-btn",
-                      t.userRating === n ? "active" : "",
+                      t.userRating >= n ? "active" : "",
                       saving === t.id ? "saving" : "",
                     ]
                       .join(" ")
@@ -626,6 +691,16 @@ function PlaylistDetail({ playlist, onBack }) {
             </div>
           ))}
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={confirmDialog.onConfirm}
+        />
       )}
 
       <div className={`pl-toast${toastVisible ? " show" : ""}`}>{toast}</div>

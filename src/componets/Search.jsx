@@ -1,29 +1,30 @@
 import { useState, useEffect, useRef } from "react";
- 
+import "./Playlists.css";
+
 const WORDS = [
-  { text: "rate",     color: "#D85A30" },
-  { text: "vibe",   color: "#7F77DD" },
-  { text: "love",     color: "#D4537E" },
+  { text: "rate", color: "#D85A30" },
+  { text: "vibe", color: "#7F77DD" },
+  { text: "love", color: "#D4537E" },
   { text: "discover", color: "#1D9E75" },
-  { text: "listen",    color: "#378ADD" },
+  { text: "listen", color: "#378ADD" },
 ];
- 
+
 function RotatingWord() {
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState("in"); // "in" | "out"
   const [chars, setChars] = useState([]);
- 
+
   useEffect(() => {
     setChars(Array.from(WORDS[index].text));
     setPhase("in");
   }, [index]);
- 
+
   useEffect(() => {
     if (phase !== "in") return;
     const timer = setTimeout(() => setPhase("out"), 2000);
     return () => clearTimeout(timer);
   }, [phase, index]);
- 
+
   useEffect(() => {
     if (phase !== "out") return;
     const duration = chars.length * 32 + 280;
@@ -32,9 +33,9 @@ function RotatingWord() {
     }, duration);
     return () => clearTimeout(timer);
   }, [phase, chars.length]);
- 
+
   const word = WORDS[index];
- 
+
   return (
     <span style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom" }}>
       {chars.map((ch, i) => {
@@ -67,15 +68,25 @@ function Search() {
   const [loading, setLoading] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("");
+  const [notice, setNotice] = useState({ open: false, title: "", message: "" });
+  const [toast, setToast] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const showToast = (message) => {
+    setToast(message);
+    setToastVisible(true);
+    window.clearTimeout(showToast.hideTimer);
+    showToast.hideTimer = window.setTimeout(() => setToastVisible(false), 2000);
+  };
 
   useEffect(() => {
-  fetch("http://localhost:8080/playlists")
-    .then((res) => res.json())
-    .then((data) => {
-      setUserPlaylists(data);
-    })
-    .catch((err) => console.error("Error loading playlists:", err));
-}, []);
+    fetch("http://localhost:8080/playlists")
+      .then((res) => res.json())
+      .then((data) => {
+        setUserPlaylists(data);
+      })
+      .catch((err) => console.error("Error loading playlists:", err));
+  }, []);
 
   useEffect(() => {
     // Load popular tracks on mount
@@ -125,7 +136,11 @@ function Search() {
 
   const handleAdd = async (track) => {
     if (!selectedPlaylistId) {
-      alert("Please create or select a playlist first!");
+      setNotice({
+        open: true,
+        title: "Select a Playlist",
+        message: "Choose a playlist before adding a song, or create one from the Playlists page."
+      });
       return;
     }
 
@@ -142,8 +157,8 @@ function Search() {
           }
         })
       });
-      
-      if (res.ok) alert(`Added ${track.name} to playlist!`);
+
+      if (res.ok) showToast(`Added ${track.name} to playlist!`);
     } catch (err) {
       console.error(err);
     }
@@ -151,71 +166,96 @@ function Search() {
 
   return (
     <div className="search-page">
-        <div className="search-container">
-            <h1>Find Music to <RotatingWord /></h1>
-            <form onSubmit={handleSearch} className="search-form">
-            <input
-                type="text"
-                placeholder="Search for a song or artist..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-            />
-            <button type="submit" disabled={loading}>
-                {loading ? "Searching..." : "Search"}
-            </button>
-            </form>
+      <div className="search-container">
+        <h1>Find Music to <RotatingWord /></h1>
+        <form onSubmit={handleSearch} className="search-form">
+          <input
+            type="text"
+            placeholder="Search for a song or artist..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </form>
+      </div>
+
+      {notice.open && (
+        <div className="pl-modal-overlay" onClick={() => setNotice({ open: false, title: "", message: "" })}>
+          <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pl-modal-header">
+              <h2 className="pl-modal-title">{notice.title}</h2>
+              <button className="pl-modal-close" onClick={() => setNotice({ open: false, title: "", message: "" })}>
+                ✕
+              </button>
+            </div>
+            <div className="pl-modal-body">
+              <p className="pl-sub" style={{ marginTop: 0, textTransform: "none", letterSpacing: "0.4px" }}>
+                {notice.message}
+              </p>
+            </div>
+            <div className="pl-modal-footer">
+              <button className="pl-create-btn" onClick={() => setNotice({ open: false, title: "", message: "" })}>
+                OK
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        <div className="search-results-grid">
-            {results.map((track) => (
-                <div key={track.id} className="track-card">
-                    <div className="track-art-wrapper">
-                        <img 
-                        src={track.albumArt || "default-placeholder.png"} 
-                        alt={track.album} 
-                        className="track-art"
-                        />
-                    </div>
-                    
-                    <div className="track-info">
-                        <h3 className="track-name">{track.name}</h3>
-                        <p className="track-artist">{track.artist}</p>
-                        <p className="track-album">{track.album}</p>
-                    </div>
+      <div className="search-results-grid">
+        {results.map((track) => (
+          <div key={track.id} className="track-card">
+            <div className="track-art-wrapper">
+              <img
+                src={track.albumArt || "default-placeholder.png"}
+                alt={track.album}
+                className="track-art"
+              />
+            </div>
 
-                    <div className="track-actions">
-                        <div className="track-stats">
-                            <span className="listeners-count">
-                            {track.listeners?.toLocaleString() || 0} listeners
-                            </span>
-                            <span className="track-rating">{track.baseRating} ★</span>
-                        </div>
-                        
-                        <div className="add-controls">
-                            <select 
-                            className="add-select"
-                            value={selectedPlaylistId}
-                            onChange={(e) => setSelectedPlaylistId(e.target.value)}
-                            >
-                            <option value="">Select Playlist...</option>
-                            {userPlaylists.map(p => (
-                                <option key={p._id} value={p._id}>{p.name}</option>
-                            ))}
-                            </select>
+            <div className="track-info">
+              <h3 className="track-name">{track.name}</h3>
+              <p className="track-artist">{track.artist}</p>
+              <p className="track-album">{track.album}</p>
+            </div>
 
-                            {/* The explicit action button */}
-                            <button 
-                            className="add-btn"
-                            onClick={() => handleAdd(track)}
-                            title="Add to selected playlist"
-                            >
-                            +
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
+            <div className="track-actions">
+              <div className="track-stats">
+                <span className="listeners-count">
+                  {track.listeners?.toLocaleString() || 0} listeners
+                </span>
+                <span className="track-rating">{track.baseRating} ★</span>
+              </div>
+
+              <div className="add-controls">
+                <select
+                  className="add-select"
+                  value={selectedPlaylistId}
+                  onChange={(e) => setSelectedPlaylistId(e.target.value)}
+                >
+                  <option value="">Select Playlist...</option>
+                  {userPlaylists.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+
+                {/* The explicit action button */}
+                <button
+                  className="add-btn"
+                  onClick={() => handleAdd(track)}
+                  title="Add to selected playlist"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className={`pl-toast${toastVisible ? " show" : ""}`}>{toast}</div>
     </div>
   );
 }

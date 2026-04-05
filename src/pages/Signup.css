@@ -1,0 +1,221 @@
+/* =======================
+   Auth Container
+======================= */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  padding: 20px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 48px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =======================
+   Header
+======================= */
+.auth-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.auth-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: #f0f0f0;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #e8ff47 0%, #a8ff47 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-subtitle {
+  color: #888;
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* =======================
+   Form
+======================= */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  color: #f0f0f0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #f0f0f0;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #e8ff47;
+  background: #222;
+  box-shadow: 0 0 0 3px rgba(232, 255, 71, 0.1);
+}
+
+.form-input::placeholder {
+  color: #666;
+}
+
+.form-input:hover {
+  border-color: #444;
+}
+
+/* =======================
+   Error & Success Messages
+======================= */
+.auth-error {
+  padding: 12px 14px;
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 8px;
+  color: #ff4757;
+  font-size: 13px;
+  animation: shake 0.3s ease-out;
+}
+
+.auth-success {
+  padding: 12px 14px;
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  border-radius: 8px;
+  color: #2ecc71;
+  font-size: 13px;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* =======================
+   Button
+======================= */
+.auth-button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #e8ff47 0%, #a8ff47 100%);
+  border: none;
+  border-radius: 8px;
+  color: #0a0a0a;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.auth-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(232, 255, 71, 0.3);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =======================
+   Footer
+======================= */
+.auth-footer {
+  text-align: center;
+}
+
+.auth-text {
+  color: #888;
+  font-size: 13px;
+  margin: 0;
+}
+
+.auth-link {
+  color: #e8ff47;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: #a8ff47;
+  text-decoration: underline;
+}
+
+/* =======================
+   Responsive
+======================= */
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 32px 20px;
+  }
+
+  .auth-title {
+    font-size: 32px;
+  }
+
+  .form-input {
+    font-size: 16px; /* Prevents auto-zoom on iOS */
+  }
+}
