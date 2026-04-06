@@ -62,7 +62,7 @@ function RotatingWord() {
   );
 }
 
-function Search({ initialQuery }) {
+function Search({ initialQuery, clearGlobalSearch }) {
   const [query, setQuery] = useState(initialQuery || "");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +78,13 @@ function Search({ initialQuery }) {
     window.clearTimeout(showToast.hideTimer);
     showToast.hideTimer = window.setTimeout(() => setToastVisible(false), 2000);
   };
+
+  useEffect(() => {
+    // When the Search page is destroyed (user clicks Home/Playlists)...
+    return () => {
+      clearGlobalSearch(); // Call the parent function to wipe the state
+    };
+  }, []);
 
   useEffect(() => {
     fetch("http://localhost:8080/playlists", {

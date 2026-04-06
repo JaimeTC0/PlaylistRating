@@ -20,6 +20,7 @@ function App() {
   const isAuthenticated = !!localStorage.getItem("token");
   const role = localStorage.getItem("role") || "user";
   const isAdmin = role === "admin";
+  const clearSearch = () => setSearchQuery("");
 
   const navigateToSearch = (query) => {
     setSearchQuery(query);
@@ -29,7 +30,7 @@ function App() {
   // Render main layout pages
   const renderPage = () => {
     if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} onNavigate={navigateToSearch}/>;
-    if (page === "search") return <Search initialQuery={searchQuery} />;
+    if (page === "search") return <Search initialQuery={searchQuery} clearGlobalSearch={clearSearch}/>;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
     if (page === "playlists") return <Playlists setPage={setPage} isAdmin={isAdmin} />;
     if (page === "admin" && isAdmin) return <AdminPanel />;
