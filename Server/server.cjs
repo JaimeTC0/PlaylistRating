@@ -487,6 +487,7 @@ app.get("/search", async (req, res) => {
           id: track.id,
           name: track.name,
           artist,
+          artistId: track.artists[0]?.id || null,
           album: track.album?.name || "Unknown",
           albumArt: track.album?.images?.[1]?.url || null,
           listeners,
@@ -499,6 +500,11 @@ app.get("/search", async (req, res) => {
     results.sort((a, b) => b.listeners - a.listeners);
     res.json(results);
   } catch (err) {
+    if (err.response?.status === 429) {
+      const retryAfter = err.response.headers?.["retry-after"] || 30;
+      console.warn(`Rate limited. Retry after ${retryAfter}s`);
+      return res.status(429).json({ message: `Rate limited. Try again in ${retryAfter} seconds.` });
+    }
     console.error("Search error:", err.response?.data || err.message);
     res.status(502).json({ message: "Error fetching search results" });
   }
@@ -690,6 +696,54 @@ app.get("/playlists/:id/globalavg", requireDB, auth, async (req, res) => {
     res.status(500).json({ message: "Error calculating global average" });
   }
 });
+
+
+// Single Spotify Artist
+app.get("/spotifyArtist/:id", async (req, res) => {
+    try {
+        await getSpotifyToken();
+        const response = await axios.get(
+            `https://api.spotify.com/v1/artists/${req.params.id}`,
+            { headers: { Authorization: `Bearer ${spotifyToken}` } }
+        );
+        const artist = response.data;
+        res.json({
+            id: artist.id,
+            name: artist.name,
+            image: artist.images?.[0]?.url || null,
+            genres: artist.genres,
+            followers: artist.followers?.total || 0,
+            popularity: artist.popularity,
+        });
+    } catch (err) {
+        console.error("Spotify artist error:", err.response?.data || err.message);
+        res.status(502).json({ message: "Error fetching artist" });
+    }
+});
+
+// Artist Albums from Spotify
+app.get("/spotifyAlbums/:id", async (req, res) => {
+    try {
+        await getSpotifyToken();
+        const response = await axios.get(
+            `https://api.spotify.com/v1/artists/${req.params.id}/albums`,
+            {
+                params: { limit: 10, include_groups: "album" },
+                headers: {Authorization: `Bearer ${spotifyToken}` }
+            }
+        );
+        const albums = response.data.items.map(album => ({
+            id: album.id,
+            AlbumName: album.name,
+            Year: album.release_date?.split("-")[0],
+            image: album.images?.[1]?.url || null,
+        }));
+        res.json(albums);
+    } catch (err) {
+        console.error("Spotify albums error:", err.response?.data || err.message);
+        res.status(502).json({ message: "Error fetching albums" });
+    }
+  });
 
 // =======================
 // 🛠️ UTILITY ROUTES

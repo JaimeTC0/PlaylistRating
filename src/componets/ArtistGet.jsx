@@ -9,11 +9,11 @@ function ArtistGet({ArtistID, setPage}){
         if (!ArtistID) return;
 
         Promise.all([
-            fetch("http://localhost:8080/artists/" + ArtistID).then(res => {
+            fetch("http://localhost:8080/spotifyArtist/" + ArtistID).then(res => {
                 if (!res.ok) return null;
                 return res.json();
             }),
-            fetch("http://localhost:8080/albums/" + ArtistID).then(res => {
+            fetch("http://localhost:8080/spotifyAlbums/" + ArtistID).then(res => {
                 if (!res.ok) return [];
                 return res.json();
             })
@@ -30,24 +30,21 @@ function ArtistGet({ArtistID, setPage}){
             {!foundArtist && <p>No Artist Found</p>}
 
             <div>
-            {/* Display the result on the page */}
             {foundArtist && (
                 <div>
-                    <h1 className="ArtistName">{foundArtist.Name}</h1>
-                    <p>Age: {foundArtist.Age}</p>
-                    <p>Rating: {foundArtist.Rating}</p>
+                    <img src={foundArtist.image} className="ArtistCover" />
+                    <h1 className="ArtistName">{foundArtist.name}</h1>
                 </div>
             )}
 
             </div>
 
-            {/* Show albums list */}
             {albums.length > 0 && (
                 <div className="AlbumList">
                     <h2>Albums:</h2>
                     {albums.map((album, index) => (
                         <div key={index} className="ListInfo">
-                            <img src="https://placehold.co/150x150" className="AlbumCover"/>
+                            <img src={album.image} className="AlbumCover"/>
                             <p>Album: {album.AlbumName}</p>
                             <p>Year: {album.Year}</p>
                         </div>
