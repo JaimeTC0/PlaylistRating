@@ -4,6 +4,7 @@ function MainPage({setPage, setSelectedArtist}){
 
     const [artists, setArtists] = useState([]);
     const [albums, setAlbums] = useState([]);
+    const username = localStorage.getItem("username") || "User";
 
     useEffect(() => {
         fetch("http://localhost:8080/allArtists")
@@ -26,6 +27,9 @@ function MainPage({setPage, setSelectedArtist}){
 
     return(
         <>  
+            <h2 className="welcome-message">
+                Welcome <span className="welcome-username">{username}</span>
+            </h2>
             <h1>Artists</h1>
 
             <div className="MainDiv">

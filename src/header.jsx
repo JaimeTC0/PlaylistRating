@@ -1,13 +1,14 @@
 import './head.css'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
-function Head({ setPage, currentPage }) {
+function Head({ setPage, currentPage, isAdmin }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
+    localStorage.removeItem("username");
     navigate("/login");
   };
 
@@ -42,6 +43,14 @@ function Head({ setPage, currentPage }) {
         >
           Playlists
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setPage("admin")}
+            className={currentPage === "admin" ? "active" : ""}
+          >
+            Admin
+          </button>
+        )}
         <button onClick={handleLogout} className="nav-link logout-btn">
           Logout
         </button>

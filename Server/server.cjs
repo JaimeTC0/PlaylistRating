@@ -3,6 +3,8 @@ const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
 const axios = require("axios");
+const bcrypt = require("bcryptjs");
+const { auth, adminOnly } = require("./middleware/auth.cjs");
 
 const app = express();
 app.use(cors());
@@ -30,6 +32,20 @@ async function connectDB() {
 function requireDB(req, res, next) {
   if (!db) return res.status(503).json({ message: "Database not ready" });
   next();
+}
+
+function getRequesterObjectId(req) {
+  const rawId = req.user?.id ? String(req.user.id) : "";
+  return ObjectId.isValid(rawId) ? new ObjectId(rawId) : null;
+}
+
+function playlistAccessFilter(req, playlistId) {
+  const base = { _id: new ObjectId(playlistId) };
+  if (req.user?.role === "admin") return base;
+
+  const requesterId = getRequesterObjectId(req);
+  if (!requesterId) return null;
+  return { ...base, ownerId: requesterId };
 }
 
 // =======================
@@ -189,9 +205,15 @@ async function getPopularTracks() {
 // =======================
 
 // GET all playlists
-app.get("/playlists", requireDB, async (req, res) => {
+app.get("/playlists", requireDB, auth, async (req, res) => {
   try {
-    const playlists = await db.collection("Playlists").find().toArray();
+    const requesterId = getRequesterObjectId(req);
+    if (!requesterId && req.user?.role !== "admin") {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
+    const query = req.user?.role === "admin" ? {} : { ownerId: requesterId };
+    const playlists = await db.collection("Playlists").find(query).toArray();
     res.json(playlists);
   } catch (e) {
     console.error(e);
@@ -200,7 +222,7 @@ app.get("/playlists", requireDB, async (req, res) => {
 });
 
 // POST create a playlist
-app.post("/playlists", requireDB, async (req, res) => {
+app.post("/playlists", requireDB, auth, async (req, res) => {
   const { name, tracks = [] } = req.body;
 
   if (!name || typeof name !== "string") {
@@ -208,10 +230,16 @@ app.post("/playlists", requireDB, async (req, res) => {
   }
 
   try {
+    const requesterId = getRequesterObjectId(req);
+    if (!requesterId) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
     const result = await db.collection("Playlists").insertOne({
       name: name.trim(),
       tracks,
       rating: null,
+      ownerId: requesterId,
       createdAt: new Date(),
     });
     res.status(201).json({ _id: result.insertedId, name, tracks });
@@ -252,13 +280,20 @@ app.post("/rate", requireDB, async (req, res) => {
 });
 
 // DELETE a playlist by ID
-app.delete("/playlists/:id", requireDB, async (req, res) => {
+app.delete("/playlists/:id", requireDB, auth, async (req, res) => {
   try {
     const playlistId = req.params.id;
 
-    const result = await db.collection("Playlists").deleteOne({
-      _id: new ObjectId(playlistId),
-    });
+    if (!ObjectId.isValid(playlistId)) {
+      return res.status(400).json({ message: "Invalid playlist ID" });
+    }
+
+    const filter = playlistAccessFilter(req, playlistId);
+    if (!filter) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
+    const result = await db.collection("Playlists").deleteOne(filter);
 
     if (result.deletedCount === 1) {
       console.log("Successfully deleted from 'Playlists' collection");
@@ -273,17 +308,26 @@ app.delete("/playlists/:id", requireDB, async (req, res) => {
 });
 
 // UPDATE playlist name
-app.put("/playlists/:id", requireDB, async (req, res) => {
+app.put("/playlists/:id", requireDB, auth, async (req, res) => {
   try {
     const playlistId = req.params.id;
     const { name } = req.body;
+
+    if (!ObjectId.isValid(playlistId)) {
+      return res.status(400).json({ message: "Invalid playlist ID" });
+    }
 
     if (!name || !name.trim()) {
       return res.status(400).json({ message: "Name is required" });
     }
 
+    const filter = playlistAccessFilter(req, playlistId);
+    if (!filter) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
     const result = await db.collection("Playlists").updateOne(
-      { _id: new ObjectId(playlistId) },
+      filter,
       { $set: { name: name.trim() } }
     );
 
@@ -299,14 +343,22 @@ app.put("/playlists/:id", requireDB, async (req, res) => {
 });
 
 // ADD a song to a playlist
-app.post("/playlists/:id/add-track", requireDB, async (req, res) => {
+app.post("/playlists/:id/add-track", requireDB, auth, async (req, res) => {
   try {
     const playlistId = req.params.id;
     const { track } = req.body;
 
-    // Use "Playlists" (plural) to match your working GET/POST routes
+    if (!ObjectId.isValid(playlistId)) {
+      return res.status(400).json({ message: "Invalid playlist ID" });
+    }
+
+    const filter = playlistAccessFilter(req, playlistId);
+    if (!filter) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
     const result = await db.collection("Playlists").updateOne(
-      { _id: new ObjectId(playlistId) },
+      filter,
       { $push: { tracks: track } }
     );
 
@@ -322,17 +374,26 @@ app.post("/playlists/:id/add-track", requireDB, async (req, res) => {
 });
 
 // REMOVE a song from a playlist
-app.delete("/playlists/:id/remove-track", requireDB, async (req, res) => {
+app.delete("/playlists/:id/remove-track", requireDB, auth, async (req, res) => {
   try {
     const playlistId = req.params.id;
     const { trackId } = req.body;
+
+    if (!ObjectId.isValid(playlistId)) {
+      return res.status(400).json({ message: "Invalid playlist ID" });
+    }
 
     if (!trackId) {
       return res.status(400).json({ message: "trackId is required" });
     }
 
+    const filter = playlistAccessFilter(req, playlistId);
+    if (!filter) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
     const result = await db.collection("Playlists").updateOne(
-      { _id: new ObjectId(playlistId) },
+      filter,
       { $pull: { tracks: { id: trackId } } }
     );
 
@@ -596,15 +657,18 @@ app.get("/tracks/:trackId/rating", requireDB, async (req, res) => {
 });
 
 // GET global average rating for a playlist
-app.get("/playlists/:id/globalavg", requireDB, async (req, res) => {
+app.get("/playlists/:id/globalavg", requireDB, auth, async (req, res) => {
   if (!ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ message: "Invalid playlist ID" });
   }
 
   try {
-    const playlist = await db.collection("Playlists").findOne({
-      _id: new ObjectId(req.params.id),
-    });
+    const filter = playlistAccessFilter(req, req.params.id);
+    if (!filter) {
+      return res.status(401).json({ message: "Invalid user identity" });
+    }
+
+    const playlist = await db.collection("Playlists").findOne(filter);
 
     if (!playlist)
       return res.status(404).json({ message: "Playlist not found" });
@@ -688,6 +752,125 @@ app.get("/allAlbums", async (req, res) => {
   }
   catch (e) {
     console.log(e);
+  }
+});
+
+// =======================
+// 👑 ADMIN ROUTES
+// =======================
+
+app.get("/admin/users", requireDB, auth, adminOnly, async (req, res) => {
+  try {
+    const users = await db
+      .collection("Users")
+      .find({}, { projection: { password: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json(users);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error fetching users" });
+  }
+});
+
+app.post("/admin/users", requireDB, auth, adminOnly, async (req, res) => {
+  try {
+    const { username, email, password, role } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "username, email, and password are required" });
+    }
+
+    const normalizedRole = role === "admin" ? "admin" : "user";
+    const usersCollection = db.collection("Users");
+
+    const existing = await usersCollection.findOne({
+      $or: [{ username: username.trim() }, { email: email.trim().toLowerCase() }],
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await usersCollection.insertOne({
+      username: username.trim(),
+      email: email.trim().toLowerCase(),
+      password: hashedPassword,
+      role: normalizedRole,
+      createdAt: new Date(),
+    });
+
+    const created = await usersCollection.findOne(
+      { _id: result.insertedId },
+      { projection: { password: 0 } },
+    );
+
+    res.status(201).json(created);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error creating user" });
+  }
+});
+
+app.put("/admin/users/:id", requireDB, auth, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, email, role, password } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const updates = {};
+    if (username && username.trim()) updates.username = username.trim();
+    if (email && email.trim()) updates.email = email.trim().toLowerCase();
+    if (role) updates.role = role === "admin" ? "admin" : "user";
+    if (password && password.trim()) {
+      updates.password = await bcrypt.hash(password.trim(), 10);
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ message: "No valid fields provided" });
+    }
+
+    const result = await db
+      .collection("Users")
+      .updateOne({ _id: new ObjectId(id) }, { $set: updates });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const updated = await db
+      .collection("Users")
+      .findOne({ _id: new ObjectId(id) }, { projection: { password: 0 } });
+
+    res.json(updated);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error updating user" });
+  }
+});
+
+app.delete("/admin/users/:id", requireDB, auth, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const result = await db.collection("Users").deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "User deleted" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error deleting user" });
   }
 });
 

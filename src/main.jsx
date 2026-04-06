@@ -8,6 +8,7 @@ import Foot from "./Foot.jsx";
 import MainPage from "./MainPage.jsx";
 import Playlists from "./componets/Playlists.jsx";
 import Search from "./componets/Search.jsx";
+import AdminPanel from "./componets/AdminPanel.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import ProtectedRoute from "./componets/ProtectedRoute.jsx";
@@ -16,18 +17,22 @@ function App() {
   const [page, setPage] = useState("home");
   const [selectedArtist, setSelectedArtist] = useState(null);
   const isAuthenticated = !!localStorage.getItem("token");
+  const role = localStorage.getItem("role") || "user";
+  const isAdmin = role === "admin";
 
   // Render main layout pages
   const renderPage = () => {
     if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
     if (page === "search") return <Search />;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
-    if (page === "playlists") return <Playlists setPage={setPage} />;
+    if (page === "playlists") return <Playlists setPage={setPage} isAdmin={isAdmin} />;
+    if (page === "admin" && isAdmin) return <AdminPanel />;
+    return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
   };
 
   const appLayout = (
     <div className="app-shell">
-      <Head setPage={setPage} currentPage={page} />
+      <Head setPage={setPage} currentPage={page} isAdmin={isAdmin} />
       <main className="app-content">{renderPage()}</main>
       <Foot />
     </div>

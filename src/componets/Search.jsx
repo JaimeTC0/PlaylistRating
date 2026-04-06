@@ -80,7 +80,11 @@ function Search() {
   };
 
   useEffect(() => {
-    fetch("http://localhost:8080/playlists")
+    fetch("http://localhost:8080/playlists", {
+      headers: {
+        Authorization: localStorage.getItem("token") || "",
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         setUserPlaylists(data);
@@ -147,7 +151,10 @@ function Search() {
     try {
       const res = await fetch(`http://localhost:8080/playlists/${selectedPlaylistId}/add-track`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: localStorage.getItem("token") || "",
+        },
         body: JSON.stringify({
           track: {
             id: track.id,
@@ -241,7 +248,6 @@ function Search() {
                   ))}
                 </select>
 
-                {/* The explicit action button */}
                 <button
                   className="add-btn"
                   onClick={() => handleAdd(track)}

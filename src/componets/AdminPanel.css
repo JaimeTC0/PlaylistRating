@@ -1,0 +1,114 @@
+.admin-page {
+  width: min(1100px, 95%);
+  margin: 20px auto 32px;
+}
+
+.admin-top {
+  margin-bottom: 18px;
+}
+
+.admin-title {
+  margin-bottom: 4px;
+}
+
+.admin-sub {
+  color: #a9a9a9;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 14px;
+}
+
+.admin-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: left;
+}
+
+.admin-form {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form button,
+.admin-role,
+.admin-delete {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.admin-form button {
+  background: var(--accent);
+  color: #111;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-users {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-user-row {
+  display: grid;
+  grid-template-columns: 1fr 130px 90px;
+  gap: 8px;
+  align-items: center;
+  background: #131313;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.admin-user-name {
+  font-weight: 600;
+  text-align: left;
+}
+
+.admin-user-email {
+  color: #9c9c9c;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.admin-delete {
+  cursor: pointer;
+  background: #3a1515;
+  border-color: #5e1d1d;
+}
+
+.admin-error {
+  margin-top: 10px;
+  color: #ff7f7f;
+}
+
+.admin-message {
+  margin-top: 10px;
+  color: var(--accent);
+}
+
+.admin-muted {
+  color: #9c9c9c;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-row {
+    grid-template-columns: 1fr;
+  }
+}

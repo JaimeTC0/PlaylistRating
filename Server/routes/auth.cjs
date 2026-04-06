@@ -36,17 +36,21 @@ router.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const existingUsersCount = await usersCollection.countDocuments();
+    const assignedRole = existingUsersCount === 0 ? "admin" : "user";
+
     const result = await usersCollection.insertOne({
       username,
       email,
       password: hashedPassword,
-      role: "user",
+      role: assignedRole,
       createdAt: new Date()
     });
 
     res.status(201).json({ 
       message: "User created successfully",
-      userId: result.insertedId
+      userId: result.insertedId,
+      role: assignedRole
     });
   } catch (err) {
     console.error("Signup error:", err);

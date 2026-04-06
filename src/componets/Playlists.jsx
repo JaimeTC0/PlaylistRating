@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import "./Playlists.css";
 import { optimisticUpdate } from "../ratingUtils";
 
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: localStorage.getItem("token") || "",
+});
+
 // =======================
 // ROTATING MUSIC EMOJIS
 // =======================
@@ -63,7 +68,7 @@ function RotatingEmojis() {
 // =======================
 // PLAYLIST LIST VIEW
 // =======================
-function PlaylistList({ onOpen, setPage }) {
+function PlaylistList({ onOpen, setPage, isAdmin }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -89,13 +94,19 @@ function PlaylistList({ onOpen, setPage }) {
 
   async function loadPlaylists() {
     try {
-      const res = await fetch("http://localhost:8080/playlists");
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch("http://localhost:8080/playlists", {
+        headers: { Authorization: token },
+      });
       const data = await res.json();
       const enriched = await Promise.all(
         data.map(async (p) => {
           try {
             const r = await fetch(
               `http://localhost:8080/playlists/${p._id}/globalavg`,
+              {
+                headers: { Authorization: token },
+              }
             );
             const { globalAvg } = await r.json();
             return { ...p, globalAvg };
@@ -143,6 +154,9 @@ function PlaylistList({ onOpen, setPage }) {
         try {
           const res = await fetch(`http://localhost:8080/playlists/${playlistId}`, {
             method: "DELETE",
+            headers: {
+              Authorization: localStorage.getItem("token") || "",
+            },
           });
 
           if (!res.ok) {
@@ -178,9 +192,11 @@ function PlaylistList({ onOpen, setPage }) {
         <div style={{ position: "absolute", left: "450px", top: "120px", width: "100%", pointerEvents: "none" }}>
           <RotatingEmojis />
         </div>
-        <button className="pl-new-btn" onClick={() => setShowModal(true)}>
-          + NEW PLAYLIST
-        </button>
+        {isAdmin && (
+          <button className="pl-new-btn" onClick={() => setShowModal(true)}>
+            + NEW PLAYLIST
+          </button>
+        )}
       </div>
 
       {!loading && playlists.length > 0 && (
@@ -320,7 +336,7 @@ function CreateModal({ onClose, onCreate, nextNumber }) {
     try {
       const res = await fetch("http://localhost:8080/playlists", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           name: name.trim(),
           tracks: [], // Creates it empty as requested
@@ -421,7 +437,7 @@ function ConfirmModal({ title, message, confirmLabel = "Delete", onCancel, onCon
 // =======================
 // PLAYLIST DETAIL VIEW
 // =======================
-function PlaylistDetail({ playlist, onBack }) {
+function PlaylistDetail({ playlist, onBack, isAdmin }) {
   const [tracks, setTracks] = useState(playlist.tracks || []);
   const [saving, setSaving] = useState(null);
   const [toast, setToast] = useState("");
@@ -455,7 +471,7 @@ function PlaylistDetail({ playlist, onBack }) {
     try {
       const res = await fetch(`http://localhost:8080/playlists/${playlist._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ name: newName.trim() }),
       });
 
@@ -478,7 +494,7 @@ function PlaylistDetail({ playlist, onBack }) {
         try {
           const res = await fetch(`http://localhost:8080/playlists/${playlist._id}/remove-track`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify({ trackId }),
           });
 
@@ -612,9 +628,11 @@ function PlaylistDetail({ playlist, onBack }) {
           ) : (
             <div className="pl-title-row">
               <h1 className="pl-title">{playlist.name || "Untitled"}</h1>
-              <button className="pl-edit-btn" onClick={() => setEditingName(true)}>
-                ✏️
-              </button>
+              {isAdmin && (
+                <button className="pl-edit-btn" onClick={() => setEditingName(true)}>
+                  ✏️
+                </button>
+              )}
             </div>
           )}
           <div className="pl-divider" />
@@ -711,7 +729,7 @@ function PlaylistDetail({ playlist, onBack }) {
 // =======================
 // ROOT EXPORT
 // =======================
-export default function Playlists({ setPage }) {
+export default function Playlists({ setPage, isAdmin }) {
   const [openPlaylist, setOpenPlaylist] = useState(null);
 
   if (openPlaylist) {
@@ -719,8 +737,9 @@ export default function Playlists({ setPage }) {
       <PlaylistDetail
         playlist={openPlaylist}
         onBack={() => setOpenPlaylist(null)}
+        isAdmin={isAdmin}
       />
     );
   }
-  return <PlaylistList onOpen={setOpenPlaylist} setPage={setPage} />;
+  return <PlaylistList onOpen={setOpenPlaylist} setPage={setPage} isAdmin={isAdmin} />;
 }

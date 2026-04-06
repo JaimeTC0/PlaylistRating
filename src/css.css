@@ -95,6 +95,16 @@ h2 {
     color: var(--text);
 }
 
+.welcome-message {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    margin: 18px 0 4px;
+    letter-spacing: 1.5px;
+}
+
+.welcome-username {
+    color: var(--accent);
+}
+
 .AlbumList,
 .MainDiv {
     display: flex;
