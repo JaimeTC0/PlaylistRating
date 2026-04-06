@@ -11,7 +11,7 @@ const WORDS = [
 
 function RotatingWord() {
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState("in"); // "in" | "out"
+  const [phase, setPhase] = useState("in");
   const [chars, setChars] = useState([]);
 
   useEffect(() => {
@@ -62,8 +62,8 @@ function RotatingWord() {
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
+function Search({ initialQuery }) {
+  const [query, setQuery] = useState(initialQuery || "");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userPlaylists, setUserPlaylists] = useState([]);
@@ -86,16 +86,20 @@ function Search() {
       },
     })
       .then((res) => res.json())
-      .then((data) => {
-        setUserPlaylists(data);
-      })
+      .then((data) => {setUserPlaylists(data);})
       .catch((err) => console.error("Error loading playlists:", err));
   }, []);
 
   useEffect(() => {
-    // Load popular tracks on mount
-    loadPopularTracks();
-  }, []);
+    if (initialQuery && initialQuery.trim() !== "") {
+      console.log("Search Page: Received initialQuery:", initialQuery);
+      setQuery(initialQuery);
+      performSearch(initialQuery);
+    } else {
+      console.log("Search Page: No query, loading popular tracks.");
+      loadPopularTracks();
+    }
+  }, [initialQuery]);
 
   const loadPopularTracks = async () => {
     setLoading(true);
@@ -116,19 +120,14 @@ function Search() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
+  const performSearch = async (searchTerm) => {
+    if (!searchTerm.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8080/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`http://localhost:8080/search?q=${encodeURIComponent(searchTerm)}`);
       if (res.ok) {
         const data = await res.json();
         setResults(Array.isArray(data) ? data : []);
-      } else {
-        console.error("Search failed with status:", res.status);
-        setResults([]);
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -136,6 +135,11 @@ function Search() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    performSearch(query);
   };
 
   const handleAdd = async (track) => {

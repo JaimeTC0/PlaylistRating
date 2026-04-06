@@ -30,7 +30,7 @@ function Carousel({ title, items, onItemClick, renderItem }) {
     );
 }
 
-function MainPage({setPage, setSelectedArtist}){
+function MainPage({ setPage, setSelectedArtist, onNavigate }) {
 
     const [artists, setArtists] = useState([]);
     const [albums, setAlbums] = useState([]);
@@ -58,8 +58,13 @@ function MainPage({setPage, setSelectedArtist}){
     }
 
     function AlbumClicked(album) {
-        setSelectedArtist(album.artistId);
-        setPage("artist");
+        if (album && album.AlbumName) {
+            const fullSearchQuery = `${album.AlbumName} by ${album.ArtistName}`;
+            console.log("Searching for:", fullSearchQuery);
+            onNavigate(fullSearchQuery);
+        } else {
+            console.error("The album object is missing the 'artist' key. available:", Object.keys(album));
+        }
     }
 
     return(

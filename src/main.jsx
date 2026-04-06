@@ -16,18 +16,24 @@ import ProtectedRoute from "./componets/ProtectedRoute.jsx";
 function App() {
   const [page, setPage] = useState("home");
   const [selectedArtist, setSelectedArtist] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const isAuthenticated = !!localStorage.getItem("token");
   const role = localStorage.getItem("role") || "user";
   const isAdmin = role === "admin";
 
+  const navigateToSearch = (query) => {
+    setSearchQuery(query);
+    setPage("search");
+  };
+
   // Render main layout pages
   const renderPage = () => {
-    if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
-    if (page === "search") return <Search />;
+    if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} onNavigate={navigateToSearch}/>;
+    if (page === "search") return <Search initialQuery={searchQuery} />;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
     if (page === "playlists") return <Playlists setPage={setPage} isAdmin={isAdmin} />;
     if (page === "admin" && isAdmin) return <AdminPanel />;
-    return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} />;
+    return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} onNavigate={navigateToSearch}/>;
   };
 
   const appLayout = (
