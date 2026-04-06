@@ -25,6 +25,14 @@ function App() {
     if (page === "playlists") return <Playlists setPage={setPage} />;
   };
 
+  const appLayout = (
+    <div className="app-shell">
+      <Head setPage={setPage} currentPage={page} />
+      <main className="app-content">{renderPage()}</main>
+      <Foot />
+    </div>
+  );
+
   return (
     <Routes>
       {/* Auth routes (no header/footer) */}
@@ -36,11 +44,7 @@ function App() {
         path="/"
         element={
           isAuthenticated ? (
-            <>
-              <Head setPage={setPage} currentPage={page} />
-              {renderPage()}
-              <Foot />
-            </>
+            appLayout
           ) : (
             <Navigate to="/login" replace />
           )
@@ -52,11 +56,7 @@ function App() {
         path="/*"
         element={
           <ProtectedRoute>
-            <>
-              <Head setPage={setPage} currentPage={page} />
-              {renderPage()}
-              <Foot />
-            </>
+            {appLayout}
           </ProtectedRoute>
         }
       />

@@ -2,16 +2,12 @@
 
 function Foot(){
     return(
-        <footer>
-            <p>Contact Us!</p>
-            <address>
-                <div>
-                    <span>Phone:</span> <span>(555) 123-1234</span><br />
-                    <span>Email:</span> <span><a href="">contact@myDomain.com</a></span><br/>
-                    <span>Address:</span> <span>111 Fictional Place</span><br/>
-                    <span>Line 2:</span> <span>Orlando, FL, 32825</span>
-                </div>
-            </address>
+        <footer className="site-footer">
+            <div className="footer-inner">
+                <p className="footer-brand">MYPLAYLIST.COM</p>
+                <p className="footer-copy">Discover music, build playlists, and rate your favorite tracks.</p>
+                <p className="footer-meta">&copy; {new Date().getFullYear()} MYPLAYLIST.COM. All rights reserved.</p>
+            </div>
         </footer>
     )
 }
