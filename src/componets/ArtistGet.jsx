@@ -1,6 +1,6 @@
 import {useState, useEffect} from "react";
 
-function ArtistGet({ArtistID, setPage}){
+function ArtistGet({ArtistID}){
     const [foundArtist, setFoundArtist] = useState(null);
     const [albums, setAlbums] = useState([]);
 

@@ -22,8 +22,12 @@ Database Name: Playlist
 - Collection 1: Playlists
 - Collection 2: TrackRatings
 - Collection 3: Users
+- Collection 4: Artists
+- Collection 5: Albums
 
 # Notes
 - The backend uses the native MongoDB driver
 - Login and signup use '/api/auth/login' and '/api/auth/signup'
 - The popular tracks list is cached on the server to reduce Spotify rate limits
+- Main page recommendations are stored in CSVs to reduce
+the Spotify rate limits

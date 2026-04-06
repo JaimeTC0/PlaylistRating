@@ -200,6 +200,51 @@ async function getPopularTracks() {
   }
 }
 
+const fs = require("fs");
+const path = require("path");
+const { parse } = require("csv-parse");
+
+async function seedDatabase() {
+    try {
+        const artistCount = await db.collection("Artists").countDocuments();
+        const albumCount = await db.collection("Albums").countDocuments();
+
+        //Add collections if they don't exist
+        if (artistCount === 0) {
+            console.log("Getting Artists collection...");
+            const artists = await parseCSV(path.join(__dirname, "/Data/Artists.csv"));
+                await db.collection("Artists").insertMany(artists);
+                console.log(`Inserted ${artists.length} artists`);
+        } 
+        else {
+            console.log("Artists already exists, skipping...");
+        }
+
+        if (albumCount === 0) {
+            console.log("Getting Albums collection...");
+            const albums = await parseCSV(path.join(__dirname, "/Data/Albums.csv"));
+            await db.collection("Albums").insertMany(albums);
+            console.log(`Inserted ${albums.length} albums`);
+        } 
+        else {
+            console.log("Albums already exists, skipping...");
+        }
+    } catch (e) {
+        console.error("Seeding error:", e);
+    }
+}
+
+function parseCSV(filePath) {
+    return new Promise((resolve, reject) => {
+        const results = [];
+        fs.createReadStream(filePath)
+            .pipe(parse({ columns: true, trim: true, skip_empty_lines: true }))
+            .on("data", (row) => results.push(row))
+            .on("end", () => resolve(results))
+            .on("error", (err) => reject(err));
+    });
+}
+
 // =======================
 // 🎵 PLAYLIST ROUTES
 // =======================
@@ -933,7 +978,9 @@ app.delete("/admin/users/:id", requireDB, auth, adminOnly, async (req, res) => {
 // =======================
 
 connectDB()
-  .then(() => {
+  .then(async () => {
+    await seedDatabase();
+
     // Set db for auth routes
     const { setDb } = require("./routes/auth.cjs");
     const authRouter = require("./routes/auth.cjs");
