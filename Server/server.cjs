@@ -295,7 +295,7 @@ app.post("/playlists", requireDB, auth, async (req, res) => {
 });
 
 // POST rate a playlist
-app.post("/rate", requireDB, async (req, res) => {
+app.post("/rate", requireDB, auth, async (req, res) => {
   const { id, rating } = req.body;
 
   if (!id || !ObjectId.isValid(id)) {
@@ -575,8 +575,8 @@ app.get("/popular", async (req, res) => {
 // =======================
 
 // POST a user rating for a track
-app.post("/tracks/rate", requireDB, async (req, res) => {
-  const { trackId, trackName, artist, rating, userId } = req.body;
+app.post("/tracks/rate", requireDB, auth, async (req, res) => {
+  const { trackId, trackName, artist, rating } = req.body;
 
   if (!trackId || !trackName || !artist) {
     return res
@@ -593,7 +593,7 @@ app.post("/tracks/rate", requireDB, async (req, res) => {
     const collection = db.collection("TrackRatings");
 
     // Use upsert to replace if user already rated this track, or insert if new
-    const userIdentifier = userId || "anonymous";
+    const userIdentifier = String(req.user.id);
     await collection.updateOne(
       { trackId, userId: userIdentifier },
       {

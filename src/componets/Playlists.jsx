@@ -68,7 +68,7 @@ function RotatingEmojis() {
 // =======================
 // PLAYLIST LIST VIEW
 // =======================
-function PlaylistList({ onOpen, setPage, isAdmin }) {
+function PlaylistList({ onOpen, setPage }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -192,11 +192,9 @@ function PlaylistList({ onOpen, setPage, isAdmin }) {
         <div style={{ position: "absolute", left: "450px", top: "120px", width: "100%", pointerEvents: "none" }}>
           <RotatingEmojis />
         </div>
-        {isAdmin && (
-          <button className="pl-new-btn" onClick={() => setShowModal(true)}>
-            + NEW PLAYLIST
-          </button>
-        )}
+        <button className="pl-new-btn" onClick={() => setShowModal(true)}>
+          + NEW PLAYLIST
+        </button>
       </div>
 
       {!loading && playlists.length > 0 && (
@@ -437,7 +435,7 @@ function ConfirmModal({ title, message, confirmLabel = "Delete", onCancel, onCon
 // =======================
 // PLAYLIST DETAIL VIEW
 // =======================
-function PlaylistDetail({ playlist, onBack, isAdmin }) {
+function PlaylistDetail({ playlist, onBack }) {
   const [tracks, setTracks] = useState(playlist.tracks || []);
   const [saving, setSaving] = useState(null);
   const [toast, setToast] = useState("");
@@ -446,14 +444,9 @@ function PlaylistDetail({ playlist, onBack, isAdmin }) {
   const [newName, setNewName] = useState(playlist.name || "Untitled");
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  // Get or create user ID for rating tracking
+  // Use authenticated user ID for rating tracking
   const getUserId = () => {
-    let userId = localStorage.getItem("playlistRatingUserId");
-    if (!userId) {
-      userId = "user_" + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem("playlistRatingUserId", userId);
-    }
-    return userId;
+    return localStorage.getItem("userId") || "";
   };
 
   const showToast = (msg) => {
@@ -572,15 +565,19 @@ function PlaylistDetail({ playlist, onBack, isAdmin }) {
       const userId = getUserId();
       const res = await fetch("http://localhost:8080/tracks/rate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           trackId,
           trackName: track?.title || track?.name || "",
           artist: track?.artist || "",
           rating,
-          userId,
         }),
       });
+
+      if (!res.ok) {
+        throw new Error("Failed to save rating");
+      }
+
       const data = await res.json();
       setTracks((prev) =>
         prev.map((t) =>
@@ -628,11 +625,9 @@ function PlaylistDetail({ playlist, onBack, isAdmin }) {
           ) : (
             <div className="pl-title-row">
               <h1 className="pl-title">{playlist.name || "Untitled"}</h1>
-              {isAdmin && (
-                <button className="pl-edit-btn" onClick={() => setEditingName(true)}>
-                  ✏️
-                </button>
-              )}
+              <button className="pl-edit-btn" onClick={() => setEditingName(true)}>
+                ✏️
+              </button>
             </div>
           )}
           <div className="pl-divider" />
@@ -701,6 +696,7 @@ function PlaylistDetail({ playlist, onBack, isAdmin }) {
                     ]
                       .join(" ")
                       .trim()}
+                    title="Rate this track"
                   >
                     ★
                   </button>
@@ -729,7 +725,7 @@ function PlaylistDetail({ playlist, onBack, isAdmin }) {
 // =======================
 // ROOT EXPORT
 // =======================
-export default function Playlists({ setPage, isAdmin }) {
+export default function Playlists({ setPage }) {
   const [openPlaylist, setOpenPlaylist] = useState(null);
 
   if (openPlaylist) {
@@ -737,9 +733,8 @@ export default function Playlists({ setPage, isAdmin }) {
       <PlaylistDetail
         playlist={openPlaylist}
         onBack={() => setOpenPlaylist(null)}
-        isAdmin={isAdmin}
       />
     );
   }
-  return <PlaylistList onOpen={setOpenPlaylist} setPage={setPage} isAdmin={isAdmin} />;
+  return <PlaylistList onOpen={setOpenPlaylist} setPage={setPage} />;
 }

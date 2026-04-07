@@ -32,7 +32,7 @@ function App() {
     if (page === "home") return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} onNavigate={navigateToSearch}/>;
     if (page === "search") return <Search initialQuery={searchQuery} clearGlobalSearch={clearSearch}/>;
     if (page === "artist") return <ArtistGet ArtistID={selectedArtist} setPage={setPage} />;
-    if (page === "playlists") return <Playlists setPage={setPage} isAdmin={isAdmin} />;
+    if (page === "playlists") return <Playlists setPage={setPage} />;
     if (page === "admin" && isAdmin) return <AdminPanel />;
     return <MainPage setPage={setPage} setSelectedArtist={setSelectedArtist} onNavigate={navigateToSearch}/>;
   };
